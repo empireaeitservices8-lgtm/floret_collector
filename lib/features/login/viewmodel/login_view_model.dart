@@ -1,19 +1,19 @@
-import 'package:flutter/material.dart';
+import 'package:floret_collector/features/login/model/login_model.dart';
+import 'package:floret_collector/features/login/model/user_model.dart';
 import 'package:floret_collector/providers/view_model.dart';
-import '../model/login_model.dart';
 import '../repos/login_repository.dart';
-import '../../main/screen/main_screen.dart';
 
 class LoginViewModel extends ViewModel {
   final LoginRepository _repository;
+
+  LoginViewModel({
+    required LoginRepository repository,
+  }) : _repository = repository;
 
   String _username = '';
   String _password = '';
   bool _isPasswordVisible = false;
   String? _errorMessage;
-
-  LoginViewModel({LoginRepository? repository})
-      : _repository = repository ?? LoginRepository();
 
   String get username => _username;
   String get password => _password;
@@ -40,11 +40,13 @@ class LoginViewModel extends ViewModel {
     notifyListeners();
   }
 
-  Future<bool> login(BuildContext context) async {
+  Future<UserModel?> login() async {
+    if (isLoading) return null;
+
     if (!isFormValid) {
       _errorMessage = 'Please enter both username and password';
       notifyListeners();
-      return false;
+      return null;
     }
 
     isLoading = true;
@@ -57,32 +59,19 @@ class LoginViewModel extends ViewModel {
         password: _password,
       );
 
-      final response = await _repository.login(request);
-
-      isLoading = false;
-      notifyListeners();
-
-      if (response.success) {
-        if (!context.mounted) return true;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Welcome ${response.user?.name ?? _username}!'),
-            backgroundColor: const Color(0xFF2E7D32),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        Navigator.pushReplacementNamed(context, MainScreen.routeName);
-        return true;
-      } else {
-        _errorMessage = response.message ?? 'Invalid credentials';
-        notifyListeners();
-        return false;
-      }
+      return await _repository.login(request);
     } catch (e) {
-      isLoading = false;
-      _errorMessage = 'An error occurred during login. Please try again.';
+      final message = e.toString();
+
+      _errorMessage = message.startsWith('Exception: ')
+          ? message.substring('Exception: '.length)
+          : 'Unable to login. Please try again.';
+
       notifyListeners();
-      return false;
+      return null;
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
   }
 }

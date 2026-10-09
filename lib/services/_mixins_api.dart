@@ -34,8 +34,7 @@ mixin WebAPIMixin {
   }
 
   /// Handle the dio error in call
-  void onDioError(DioException error, String apiName,
-      { Function? apiFunction}) {
+  void onDioError(DioException error, String apiName, {Function? apiFunction}) {
     String? msg;
     switch (error.type) {
       case DioExceptionType.sendTimeout:
@@ -121,6 +120,9 @@ mixin WebAPIMixin {
 
       case DioExceptionType.badCertificate:
         break;
+      case DioExceptionType.transformTimeout:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
     throw APIException(
         enumProperty: EnumAPIExceptions.httpStatusError,
@@ -167,7 +169,7 @@ mixin WebAPIMixin {
       }
     }
 
-    //Navigating back from Connection failed screen if showing on 
+    //Navigating back from Connection failed screen if showing on
     if (Navigator.of(AppConfig.navKey.currentState!.context)
         .isCurrentRoute(ConnectionFailedScreen.routeName)) {
       Navigator.pop(AppConfig.navKey.currentState!.context);

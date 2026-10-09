@@ -1,34 +1,21 @@
-import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:floret_collector/providers/view_model.dart';
-import '../model/splash_model.dart';
-import '../repos/splash_repository.dart';
+import 'package:flutter/foundation.dart';
+import 'package:floret_collector/features/login/repos/login_repository.dart';
 
-class SplashViewModel extends ViewModel {
-  final SplashRepository _repository;
-  SplashModel _state = const SplashModel();
+class SplashViewModel extends ChangeNotifier {
+  final LoginRepository _repository;
 
-  Timer? _timer;
+  SplashViewModel({
+    required LoginRepository repository,
+  }) : _repository = repository;
 
-  SplashViewModel({SplashRepository? repository})
-      : _repository = repository ?? SplashRepository();
+  Future<bool> checkLoginStatus() async {
+    try {
+      final token = await _repository.getSavedToken();
 
-  SplashModel get state => _state;
-
-  void initialize(BuildContext context, {required VoidCallback onComplete}) {
-    _timer = Timer(const Duration(milliseconds: 2500), () async {
-      final isLoggedIn = await _repository.initializeApp();
-      _state = _state.copyWith(isReady: true, isAuthenticated: isLoggedIn);
-      notifyListeners();
-
-      if (!context.mounted) return;
-      onComplete();
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+      return token != null && token.isNotEmpty;
+    } catch (e) {
+      debugPrint('Splash error: $e');
+      return false;
+    }
   }
 }

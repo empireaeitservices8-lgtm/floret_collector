@@ -1,5 +1,6 @@
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:floret_collector/config/app_config.dart';
+import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/l10n/app_localizations.dart';
 
 import 'package:floret_collector/utils/extensions.dart';
@@ -19,7 +20,11 @@ import 'utils/localization.dart';
 import 'utils/routes.dart';
 import 'utils/themes.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDependencies();
+
   runApp(const MyApp());
 }
 

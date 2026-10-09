@@ -24,7 +24,7 @@ void main() {
   });
 
   test('LoginViewModel validation and state test', () {
-    final vm = LoginViewModel();
+    final vm = LoginViewModel(repository: null);
     expect(vm.isFormValid, isFalse);
     expect(vm.isPasswordVisible, isFalse);
 

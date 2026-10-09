@@ -35,6 +35,7 @@ class HomeScreen extends StatelessWidget {
               }
 
               final summary = vm.summary;
+
               final displayName = summary.userName.trim().isNotEmpty
                   ? summary.userName.trim()
                   : 'User';
@@ -309,7 +310,8 @@ class HomeScreen extends StatelessWidget {
                                       child: LinearProgressIndicator(
                                         value: 0.0,
                                         backgroundColor: Color(0xFFE2E8F0),
-                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
                                           Color(0xFF93C5FD),
                                         ),
                                       ),

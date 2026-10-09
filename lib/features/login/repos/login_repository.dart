@@ -1,43 +1,46 @@
-import 'package:floret_collector/services/web_api_services.dart';
-import 'package:floret_collector/utils/sp_keys.dart' as sp_keys;
-import 'package:shared_preferences/shared_preferences.dart';
-import '../model/login_model.dart';
+import 'package:floret_collector/features/login/model/login_model.dart';
+import 'package:floret_collector/features/login/model/user_model.dart';
+import 'package:floret_collector/services/auth_services.dart';
+import 'package:floret_collector/services/token_storage.dart';
 
-class LoginRepository {
-  final WebAPIService _webAPIService;
+abstract class LoginRepository {
+  Future<UserModel> login(LoginRequestModel request);
+  Future<String?> getSavedToken();
+  Future<void> logout();
+}
 
-  LoginRepository({WebAPIService? webAPIService})
-      : _webAPIService = webAPIService ?? WebAPIService();
+class LoginRepositoryImpl implements LoginRepository {
+  final AuthService authService;
+  final TokenStorage tokenStorage;
 
-  Future<LoginResponseModel> login(LoginRequestModel request) async {
-    try {
-      // If mock/offline or before server is wired up, simulate successful login
-      // or connect to real endpoint when ready
-      final sp = await SharedPreferences.getInstance();
-      await sp.setString(sp_keys.keyToken, 'auth_token_${request.username}');
-      await sp.setString('saved_username', request.username);
-      await sp.setString(sp_keys.keyUserName, request.username);
-      await _webAPIService.initTokenToHeader();
+  LoginRepositoryImpl({
+    required this.authService,
+    required this.tokenStorage,
+  });
 
-      return LoginResponseModel(
-        success: true,
-        message: 'Login successful',
-        token: 'auth_token_${request.username}',
-        user: UserModel(
-          username: request.username,
-          name: request.username,
-        ),
-      );
-    } catch (e) {
-      return LoginResponseModel(
-        success: false,
-        message: e.toString(),
-      );
+  @override
+  Future<UserModel> login(LoginRequestModel request) async {
+    final response = await authService.login(
+      request.username,
+      request.password,
+    );
+
+    if (response.token.isEmpty) {
+      throw Exception('Login response did not contain a token');
     }
+
+    await tokenStorage.saveToken(response.token);
+
+    return response;
   }
 
-  Future<String?> getSavedUsername() async {
-    final sp = await SharedPreferences.getInstance();
-    return sp.getString('saved_username');
+  @override
+  Future<String?> getSavedToken() {
+    return tokenStorage.getToken();
+  }
+
+  @override
+  Future<void> logout() {
+    return tokenStorage.deleteToken();
   }
 }
