@@ -54,8 +54,6 @@ class HomeScreen extends StatelessWidget {
                 return buildHomeShimmer();
               }
 
-              final summary = _DashboardPlaceholder();
-
               return RefreshIndicator(
                 onRefresh: () async {
                   await Future.wait([
@@ -82,7 +80,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            summary.locationArea,
+                            vm.collectorName,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -112,7 +110,7 @@ class HomeScreen extends StatelessWidget {
                               iconBg: const Color(0xFFFEF3C7),
                               iconColor: const Color(0xFFD97706),
                               icon: Icons.shopping_bag_rounded,
-                              value: summary.remainingCovers,
+                              value: "0/0",
                               label: 'Remaining Covers',
                             ),
                           ),
@@ -124,7 +122,7 @@ class HomeScreen extends StatelessWidget {
                               iconBg: const Color(0xFFDCFCE7),
                               iconColor: const Color(0xFF16A34A),
                               icon: Icons.scale_rounded,
-                              value: summary.weight,
+                              value: "0.0",
                               label: 'Weight',
                             ),
                           ),
@@ -135,7 +133,7 @@ class HomeScreen extends StatelessWidget {
                               iconBg: const Color(0xFFDBEAFE),
                               iconColor: const Color(0xFF2563EB),
                               icon: Icons.payments_rounded,
-                              value: summary.collectedAmount,
+                              value: "₹ 0",
                               label: 'Collected',
                             ),
                           ),
@@ -277,7 +275,7 @@ class HomeScreen extends StatelessWidget {
                                       ),
                                       children: [
                                         TextSpan(
-                                          text: summary.locationArea,
+                                          text: "N/A",
                                           style: const TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
@@ -316,7 +314,7 @@ class HomeScreen extends StatelessWidget {
                                         ),
                                       ),
                                       Text(
-                                        summary.sanitaryPickups,
+                                        "0/0",
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w800,
@@ -344,7 +342,7 @@ class HomeScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 10),
                                   Text(
-                                    'Completed routes (${summary.routeDescription})',
+                                    'Completed routes (Organic)',
                                     style: const TextStyle(
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w500,
@@ -372,12 +370,12 @@ class HomeScreen extends StatelessWidget {
 }
 
 // Display-only defaults.
-class _DashboardPlaceholder {
-  final String userName = 'Collector';
-  final String locationArea = 'N/A';
-  final String remainingCovers = '0/0';
-  final String weight = '0.0 kg';
-  final String collectedAmount = '₹0';
-  final String sanitaryPickups = '0/0';
-  final String routeDescription = 'Organic & domestic bio-waste';
-}
+// class _DashboardPlaceholder {
+//   final String userName = 'Collector';
+//   final String locationArea = 'N/A';
+//   final String remainingCovers = '0/0';
+//   final String weight = '0.0 kg';
+//   final String collectedAmount = '₹0';
+//   final String sanitaryPickups = '0/0';
+//   final String routeDescription = 'Organic & domestic bio-waste';
+// }

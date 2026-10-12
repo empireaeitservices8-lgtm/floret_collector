@@ -32,7 +32,7 @@ class HomeViewModel extends ChangeNotifier {
   // Load collector details from SharedPrefs
   Future<void> loadCollector() async {
     final collector = await _collectorLocalStorage.getCollector();
-    debugPrint(collector.toString());
+    debugPrint("Collector Details ${collector.toString()}");
 
     _collectorName = collector?['name']?.toString() ?? '';
 
@@ -47,7 +47,7 @@ class HomeViewModel extends ChangeNotifier {
 
     try {
       final response = await _repository.getPickupSlots();
-      debugPrint(response.toString());
+      debugPrint("Pickups ${response.toString()}");
       _slots = response.slots;
     } catch (e) {
       _errorMessage = 'Unable to load pickup slots';
@@ -71,7 +71,7 @@ class HomeViewModel extends ChangeNotifier {
   Future<void> loadBags() async {
     try {
       _bags = await _repository.getBags();
-      debugPrint(bags.toString());
+      debugPrint("response ${bags.toString()} ");
       notifyListeners();
     } catch (e) {
       debugPrint('Unable to load bags: $e');

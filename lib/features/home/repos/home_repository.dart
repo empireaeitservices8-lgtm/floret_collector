@@ -2,6 +2,7 @@ import 'package:floret_collector/features/home/model/bag_model.dart';
 import 'package:floret_collector/features/home/model/pickup_slot_model.dart';
 import 'package:floret_collector/services/api_client.dart';
 import 'package:floret_collector/services/api_endpoints.dart';
+import 'package:flutter/rendering.dart';
 
 abstract class HomeRepository {
   Future<PickupSlotsResponseModel> getPickupSlots();
@@ -19,7 +20,7 @@ class HomeRepositoryImpl implements HomeRepository {
     final response = await apiClient.get(
       APIEndPoints.pickupSlots,
     );
-
+    debugPrint("called ${APIEndPoints.pickupSlots}");
     return PickupSlotsResponseModel.fromJson(
       Map<String, dynamic>.from(response.data as Map),
     );
@@ -31,7 +32,7 @@ class HomeRepositoryImpl implements HomeRepository {
     final response = await apiClient.get(
       APIEndPoints.bags,
     );
-
+    debugPrint("called ${APIEndPoints.bags}");
     final List<dynamic> data = response.data as List<dynamic>;
 
     return data
@@ -47,6 +48,9 @@ class HomeRepositoryImpl implements HomeRepository {
       APIEndPoints.bagDetails(id),
     );
 
+    debugPrint("called ${apiClient.get(
+      APIEndPoints.bagDetails(id),
+    )}");
     return BagModel.fromJson(
       Map<String, dynamic>.from(response.data as Map),
     );

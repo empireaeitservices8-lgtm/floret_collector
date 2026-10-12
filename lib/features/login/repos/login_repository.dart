@@ -2,6 +2,7 @@ import 'package:floret_collector/features/login/model/login_model.dart';
 import 'package:floret_collector/features/login/model/user_model.dart';
 import 'package:floret_collector/services/auth_services.dart';
 import 'package:floret_collector/services/token_storage.dart';
+import 'package:flutter/material.dart';
 
 abstract class LoginRepository {
   Future<UserModel> login(LoginRequestModel request);
@@ -30,7 +31,7 @@ class LoginRepositoryImpl implements LoginRepository {
     }
 
     await tokenStorage.saveToken(response.token);
-    print(response);
+    debugPrint("api/login/ response:${response.toString()}");
     return response;
   }
 
