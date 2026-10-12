@@ -1,7 +1,9 @@
+import 'package:floret_collector/features/home/screen/widgets/home_shimmer.dart';
+import 'package:floret_collector/features/home/screen/widgets/metric_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shimmer/shimmer.dart';
 import '../viewmodel/home_view_model.dart';
+import 'package:floret_collector/core/di/injection.dart';
 import '../../main/viewmodel/main_view_model.dart';
 import '../../schedule/screen/schedule_screen.dart';
 
@@ -9,6 +11,21 @@ class HomeScreen extends StatelessWidget {
   static const String routeName = '/HomeScreen';
 
   const HomeScreen({super.key});
+
+  Widget _scheduleMessage(String message) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Center(
+            child: Text(message,
+                textAlign: TextAlign.center,
+                style:
+                    const TextStyle(color: Color(0xFF8C95A6), fontSize: 15))),
+      );
 
   void _navigateToSchedule(BuildContext context) {
     try {
@@ -24,24 +41,28 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<HomeViewModel>(
-      create: (_) => HomeViewModel(),
+      create: (_) => getIt<HomeViewModel>()
+        ..loadCollector()
+        ..loadBags()
+        ..loadPickupSlots(),
       child: Scaffold(
         backgroundColor: const Color(0xFFFAFAFA),
         body: SafeArea(
           child: Consumer<HomeViewModel>(
             builder: (context, vm, _) {
-              if (vm.isShimmerLoading) {
-                return _buildHomeShimmer();
+              if (vm.isLoading) {
+                return buildHomeShimmer();
               }
 
-              final summary = vm.summary;
-
-              final displayName = summary.userName.trim().isNotEmpty
-                  ? summary.userName.trim()
-                  : 'User';
+              final summary = _DashboardPlaceholder();
 
               return RefreshIndicator(
-                onRefresh: () => vm.loadHomeData(isRefresh: true),
+                onRefresh: () async {
+                  await Future.wait([
+                    vm.loadPickupSlots(),
+                    vm.loadBags(),
+                  ]);
+                },
                 color: const Color(0xFF2E7D32),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -70,12 +91,10 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 12),
-
                       // Greeting Title
                       Text(
-                        'Hi, $displayName!',
+                        'Hi, ${vm.collectorName.isEmpty ? "Collector" : vm.collectorName}!',
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
@@ -83,15 +102,13 @@ class HomeScreen extends StatelessWidget {
                           letterSpacing: -0.5,
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
-                      // 3 Summary KPI Cards in a Row
+                      //  Summary KPI Cards in a Row
                       Row(
                         children: [
                           // Card 1: Remaining Covers
                           Expanded(
-                            child: _buildMetricCard(
+                            child: buildMetricCard(
                               iconBg: const Color(0xFFFEF3C7),
                               iconColor: const Color(0xFFD97706),
                               icon: Icons.shopping_bag_rounded,
@@ -103,7 +120,7 @@ class HomeScreen extends StatelessWidget {
 
                           // Card 2: Weight
                           Expanded(
-                            child: _buildMetricCard(
+                            child: buildMetricCard(
                               iconBg: const Color(0xFFDCFCE7),
                               iconColor: const Color(0xFF16A34A),
                               icon: Icons.scale_rounded,
@@ -112,10 +129,9 @@ class HomeScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 12),
-
                           // Card 3: Collected
                           Expanded(
-                            child: _buildMetricCard(
+                            child: buildMetricCard(
                               iconBg: const Color(0xFFDBEAFE),
                               iconColor: const Color(0xFF2563EB),
                               icon: Icons.payments_rounded,
@@ -125,9 +141,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 28),
-
                       // Today's Collection Schedule Header & Forward Arrow
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -173,32 +187,45 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 14),
-
-                      // Schedule Card
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'No collections scheduled for today',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF8C95A6),
-                            ),
-                          ),
-                        ),
-                      ),
-
+                      // Schedule Card: real data from /api/pickup-slots/
+                      if (vm.errorMessage != null)
+                        _scheduleMessage(vm.errorMessage!)
+                      else if (vm.todaySlots.isEmpty)
+                        _scheduleMessage('No collections scheduled for today')
+                      else
+                        ...vm.todaySlots.map((slot) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                      color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(slot.localBody,
+                                        style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 6),
+                                    Text('${slot.district} • ${slot.timeSlot}',
+                                        style: const TextStyle(
+                                            color: Color(0xFF64748B))),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                        'Available spots: ${slot.availableSpots}',
+                                        style: const TextStyle(
+                                            color: Color(0xFF64748B))),
+                                  ],
+                                ),
+                              ),
+                            )),
                       const SizedBox(height: 28),
-
                       // Today's Collection Overview Header
                       const Text(
                         "Today's collection overview",
@@ -209,9 +236,7 @@ class HomeScreen extends StatelessWidget {
                           letterSpacing: -0.3,
                         ),
                       ),
-
                       const SizedBox(height: 14),
-
                       // Overview Container
                       Container(
                         width: double.infinity,
@@ -344,252 +369,15 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildHomeShimmer() {
-    const baseColor = Color(0xFFE2E8F0);
-    const highlightColor = Color(0xFFF8FAFC);
-
-    return SingleChildScrollView(
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Shimmer.fromColors(
-        baseColor: baseColor,
-        highlightColor: highlightColor,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-
-            // Location Shimmer Row
-            Row(
-              children: [
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 70,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            // Greeting "Hi, [username]" Shimmer Bar
-            Container(
-              width: 180,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // 3 Summary KPI Cards Shimmer Row
-            Row(
-              children: [
-                Expanded(child: _buildMetricCardShimmer()),
-                const SizedBox(width: 12),
-                Expanded(child: _buildMetricCardShimmer()),
-                const SizedBox(width: 12),
-                Expanded(child: _buildMetricCardShimmer()),
-              ],
-            ),
-
-            const SizedBox(height: 28),
-
-            // Schedule Header Shimmer
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 220,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            // Schedule Card Shimmer
-            Container(
-              width: double.infinity,
-              height: 76,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            // Overview Header Shimmer
-            Container(
-              width: 210,
-              height: 22,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // Overview Container Shimmer
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Container(
-                    width: double.infinity,
-                    height: 90,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetricCardShimmer() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            width: 44,
-            height: 18,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            width: 60,
-            height: 10,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMetricCard({
-    required Color iconBg,
-    required Color iconColor,
-    required IconData icon,
-    required String value,
-    required String label,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: iconBg,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: iconColor,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF8C95A6),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+// Display-only defaults.
+class _DashboardPlaceholder {
+  final String userName = 'Collector';
+  final String locationArea = 'N/A';
+  final String remainingCovers = '0/0';
+  final String weight = '0.0 kg';
+  final String collectedAmount = '₹0';
+  final String sanitaryPickups = '0/0';
+  final String routeDescription = 'Organic & domestic bio-waste';
 }

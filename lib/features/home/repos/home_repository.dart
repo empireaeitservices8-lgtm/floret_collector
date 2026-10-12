@@ -1,36 +1,54 @@
-import '../model/home_model.dart';
-import 'package:floret_collector/services/web_api_services.dart';
-import 'package:floret_collector/utils/sp_keys.dart' as sp_keys;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:floret_collector/features/home/model/bag_model.dart';
+import 'package:floret_collector/features/home/model/pickup_slot_model.dart';
+import 'package:floret_collector/services/api_client.dart';
+import 'package:floret_collector/services/api_endpoints.dart';
 
-class HomeRepository {
-  final WebAPIService _webAPIService;
+abstract class HomeRepository {
+  Future<PickupSlotsResponseModel> getPickupSlots();
+  Future<List<BagModel>> getBags();
+  Future<BagModel> getBagDetails(int id);
+}
 
-  HomeRepository({WebAPIService? webAPIService})
-      : _webAPIService = webAPIService ?? WebAPIService();
+class HomeRepositoryImpl implements HomeRepository {
+  final ApiClient apiClient;
 
-  WebAPIService get webAPIService => _webAPIService;
+  HomeRepositoryImpl(this.apiClient);
 
-  Future<HomeSummaryModel> fetchHomeSummary() async {
-    try {
-      final sp = await SharedPreferences.getInstance();
-      final savedUser =
-          sp.getString('saved_username') ?? sp.getString(sp_keys.keyUserName);
-      final userName = (savedUser != null && savedUser.trim().isNotEmpty)
-          ? savedUser.trim()
-          : 'User';
+  @override
+  Future<PickupSlotsResponseModel> getPickupSlots() async {
+    final response = await apiClient.get(
+      APIEndPoints.pickupSlots,
+    );
 
-      return HomeSummaryModel(
-        userName: userName,
-        locationArea: 'N/A',
-        remainingCovers: '0/0',
-        weight: '0.0 kg',
-        collectedAmount: '₹0',
-        sanitaryPickups: '0/0',
-        routeDescription: 'Organic & domestic bio-waste',
-      );
-    } catch (_) {
-      return const HomeSummaryModel();
-    }
+    return PickupSlotsResponseModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  //bags
+  @override
+  Future<List<BagModel>> getBags() async {
+    final response = await apiClient.get(
+      APIEndPoints.bags,
+    );
+
+    final List<dynamic> data = response.data as List<dynamic>;
+
+    return data
+        .map((item) => BagModel.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ))
+        .toList();
+  }
+
+  @override
+  Future<BagModel> getBagDetails(int id) async {
+    final response = await apiClient.get(
+      APIEndPoints.bagDetails(id),
+    );
+
+    return BagModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
   }
 }

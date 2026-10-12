@@ -30,7 +30,7 @@ class LoginRepositoryImpl implements LoginRepository {
     }
 
     await tokenStorage.saveToken(response.token);
-
+    print(response);
     return response;
   }
 

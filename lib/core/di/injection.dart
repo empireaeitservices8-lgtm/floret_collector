@@ -1,3 +1,6 @@
+import 'package:floret_collector/core/storage/collector_details.dart';
+import 'package:floret_collector/features/home/repos/home_repository.dart';
+import 'package:floret_collector/features/home/viewmodel/home_view_model.dart';
 import 'package:floret_collector/features/splash/viewmodel/splash_view_model.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -14,6 +17,11 @@ Future<void> initializeDependencies() async {
   getIt.registerLazySingleton<ApiClient>(
     () => ApiClient(),
   );
+
+  //shared
+  getIt.registerLazySingleton<CollectorLocalStorage>(
+    () => CollectorLocalStorage(),
+  );
   // Secure storage
   getIt.registerLazySingleton<FlutterSecureStorage>(
     () => const FlutterSecureStorage(),
@@ -26,9 +34,11 @@ Future<void> initializeDependencies() async {
   );
 
   // Services
+
   getIt.registerLazySingleton<AuthService>(
     () => AuthService(
       getIt<ApiClient>(),
+      getIt<CollectorLocalStorage>(),
     ),
   );
 
@@ -40,11 +50,23 @@ Future<void> initializeDependencies() async {
     ),
   );
 
+  getIt.registerLazySingleton<HomeRepository>(
+    () => HomeRepositoryImpl(
+      getIt<ApiClient>(),
+    ),
+  );
+
   // ViewModels
   getIt.registerFactory<LoginViewModel>(
     () => LoginViewModel(
       repository: getIt<LoginRepository>(),
     ),
+  );
+
+  getIt.registerFactory<HomeViewModel>(
+    () => HomeViewModel(
+        repository: getIt<HomeRepository>(),
+        collectorLocalStorage: getIt<CollectorLocalStorage>()),
   );
 
   getIt.registerFactory<SplashViewModel>(
