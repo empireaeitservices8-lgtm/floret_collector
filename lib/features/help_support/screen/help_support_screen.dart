@@ -1,3 +1,4 @@
+import 'package:floret_collector/core/di/injection.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/faq_item_model.dart';
@@ -30,7 +31,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<HelpSupportViewModel>(
-      create: (_) => HelpSupportViewModel(),
+      create: (_) => getIt.isRegistered<HelpSupportViewModel>()
+          ? getIt<HelpSupportViewModel>()
+          : HelpSupportViewModel(),
       child: Scaffold(
         backgroundColor: const Color(0xFFFAFAFA),
         body: SafeArea(
@@ -94,7 +97,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                             iconColor: const Color(0xFF059669),
                             iconBgColor: const Color(0xFFDCFCE7),
                             title: 'Call Support',
-                            subtitle: '+91 92920 23601',
+                            subtitle: vm.supportPhone,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -106,7 +109,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                             iconColor: const Color(0xFF2563EB),
                             iconBgColor: const Color(0xFFEFF6FF),
                             title: 'Email Support',
-                            subtitle: 'florettechnologi...',
+                            subtitle: vm.supportEmail,
                           ),
                         ),
                       ],

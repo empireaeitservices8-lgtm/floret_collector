@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodel/schedule_view_model.dart';
+import 'schedule_filter_bottom_sheet.dart';
 import '../../main/viewmodel/main_view_model.dart';
 
 class ScheduleScreen extends StatelessWidget {
@@ -40,7 +41,9 @@ class ScheduleScreen extends StatelessWidget {
                                 Navigator.pop(context);
                               } else {
                                 try {
-                                  Provider.of<MainViewModel?>(context, listen: false)?.setIndex(0);
+                                  Provider.of<MainViewModel?>(context,
+                                          listen: false)
+                                      ?.setIndex(0);
                                 } catch (_) {}
                               }
                             },
@@ -54,9 +57,15 @@ class ScheduleScreen extends StatelessWidget {
                             ),
                           ),
                           _buildCircularButton(
-                            icon: Icons.tune_rounded,
+                            icon: Icons.tune,
                             onTap: () {
-                              // Filter bottom sheet / action
+                              ScheduleFilterBottomSheet.show(
+                                context: context,
+                                currentFilter: vm.filter,
+                                onApply: (newFilter) {
+                                  vm.setFilter(newFilter);
+                                },
+                              );
                             },
                           ),
                         ],
@@ -192,7 +201,7 @@ class ScheduleScreen extends StatelessWidget {
 
                       // Waste Type Header
                       Text(
-                        'Waste type: ${schedule.wasteType}',
+                        'Waste type: ${vm.wasteTypeDisplay}',
                         style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,

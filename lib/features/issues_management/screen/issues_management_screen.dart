@@ -1,3 +1,4 @@
+import 'package:floret_collector/core/di/injection.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/issue_model.dart';
@@ -16,7 +17,9 @@ class _IssuesManagementScreenState extends State<IssuesManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<IssuesViewModel>(
-      create: (_) => IssuesViewModel(),
+      create: (_) => getIt.isRegistered<IssuesViewModel>()
+          ? getIt<IssuesViewModel>()
+          : IssuesViewModel(),
       child: Scaffold(
         backgroundColor: const Color(0xFFFAFAFA),
         body: SafeArea(
@@ -44,13 +47,16 @@ class _IssuesManagementScreenState extends State<IssuesManagementScreen> {
                         ),
                         const Expanded(
                           child: Center(
-                            child: Text(
-                              'Issues Management',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
-                                letterSpacing: -0.3,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'Issues Management',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
+                                  letterSpacing: -0.3,
+                                ),
                               ),
                             ),
                           ),
@@ -97,8 +103,7 @@ class _IssuesManagementScreenState extends State<IssuesManagementScreen> {
                               count: vm.openCount,
                               isSelected: vm.selectedTab == IssueTab.issues,
                               badgeColor: const Color(0xFFEF4444),
-                              onTap: () =>
-                                  vm.setSelectedTab(IssueTab.issues),
+                              onTap: () => vm.setSelectedTab(IssueTab.issues),
                             ),
                           ),
 
@@ -109,8 +114,7 @@ class _IssuesManagementScreenState extends State<IssuesManagementScreen> {
                               count: vm.resolvedCount,
                               isSelected: vm.selectedTab == IssueTab.resolved,
                               badgeColor: const Color(0xFF10B981),
-                              onTap: () =>
-                                  vm.setSelectedTab(IssueTab.resolved),
+                              onTap: () => vm.setSelectedTab(IssueTab.resolved),
                             ),
                           ),
                         ],
@@ -176,35 +180,39 @@ class _IssuesManagementScreenState extends State<IssuesManagementScreen> {
           color: isSelected ? const Color(0xFF1E293B) : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF64748B),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: isSelected ? badgeColor : const Color(0xFFCBD5E1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '$count',
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
                 style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                   color: isSelected ? Colors.white : const Color(0xFF64748B),
-                  height: 1.1,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected ? badgeColor : const Color(0xFFCBD5E1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: isSelected ? Colors.white : const Color(0xFF64748B),
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -214,10 +222,10 @@ class _IssuesManagementScreenState extends State<IssuesManagementScreen> {
     final isResolved = item.isResolved;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 1),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFF1F5F9)),
         boxShadow: [
           BoxShadow(
@@ -228,7 +236,7 @@ class _IssuesManagementScreenState extends State<IssuesManagementScreen> {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(11),
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -332,55 +340,67 @@ class _IssuesManagementScreenState extends State<IssuesManagementScreen> {
 
                           const SizedBox(width: 8),
 
-                          // Name
-                          Text(
-                            item.userName,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-
-                          // Phone Pill
-                          if (item.phoneNumber != null &&
-                              item.phoneNumber!.trim().isNotEmpty) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: const Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.phone_outlined,
-                                    size: 12,
-                                    color: Color(0xFF64748B),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    item.phoneNumber!,
+                          // Name and Phone
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    item.userName,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
                                     style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF64748B),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ),
+                                if (item.phoneNumber != null &&
+                                    item.phoneNumber!.trim().isNotEmpty) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: const Color(0xFFE2E8F0),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.phone_outlined,
+                                          size: 12,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Flexible(
+                                          child: Text(
+                                            item.phoneNumber!,
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                              color: Color(0xFF64748B),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
-                              ),
+                              ],
                             ),
-                          ],
+                          ),
 
-                          const Spacer(),
+                          const SizedBox(width: 8),
 
                           // Chevron Right Icon
                           const Icon(

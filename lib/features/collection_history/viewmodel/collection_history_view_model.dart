@@ -1,3 +1,4 @@
+import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/providers/view_model.dart';
 import '../model/collection_history_model.dart';
 import '../repos/collection_history_repository.dart';
@@ -18,7 +19,10 @@ class CollectionHistoryViewModel extends ViewModel {
   CollectionFilterModel _filter = CollectionFilterModel.empty;
 
   CollectionHistoryViewModel({CollectionHistoryRepository? repository})
-      : _repository = repository ?? CollectionHistoryRepository() {
+      : _repository = repository ??
+            (getIt.isRegistered<CollectionHistoryRepository>()
+                ? getIt<CollectionHistoryRepository>()
+                : CollectionHistoryRepository()) {
     loadHistory();
   }
 

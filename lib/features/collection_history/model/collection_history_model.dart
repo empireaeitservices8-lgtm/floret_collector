@@ -36,10 +36,12 @@ class CollectionItemModel {
       id: json['id']?.toString() ?? '',
       stopId: json['stop_id']?.toString() ??
           json['stopId']?.toString() ??
+          json['pickup_id']?.toString() ??
           json['stop']?.toString() ??
           '',
       stopName: json['stop_name']?.toString() ??
           json['stopName']?.toString() ??
+          json['user_name']?.toString() ??
           json['customer_name']?.toString() ??
           '',
       wasteType: json['waste_type']?.toString() ??

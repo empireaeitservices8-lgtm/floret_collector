@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:floret_collector/features/login/model/login_model.dart';
 import 'package:floret_collector/features/login/model/user_model.dart';
 import 'package:floret_collector/services/auth_services.dart';

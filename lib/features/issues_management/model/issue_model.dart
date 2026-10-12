@@ -25,7 +25,9 @@ class IssueModel {
   factory IssueModel.fromJson(Map<String, dynamic> json) {
     return IssueModel(
       id: json['id']?.toString() ?? '',
-      title: json['title']?.toString() ?? 'Issue Report',
+      title: json['subject']?.toString() ??
+          json['title']?.toString() ??
+          'Issue Report',
       description: json['description']?.toString() ??
           json['reason']?.toString() ??
           '',
@@ -33,7 +35,10 @@ class IssueModel {
           json['customer_name']?.toString() ??
           json['stop_name']?.toString() ??
           'User',
-      phoneNumber: json['phone']?.toString() ?? json['phone_number']?.toString(),
+      phoneNumber: (json['user_phone'] ??
+              json['phone'] ??
+              json['phone_number'])
+          ?.toString(),
       isResolved: json['is_resolved'] == true ||
           json['status']?.toString().toLowerCase() == 'resolved',
       createdAt: json['created_at']?.toString(),

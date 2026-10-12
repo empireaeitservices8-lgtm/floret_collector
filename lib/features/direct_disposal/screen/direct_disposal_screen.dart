@@ -1,3 +1,4 @@
+import 'package:floret_collector/core/di/injection.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/direct_disposal_model.dart';
@@ -50,7 +51,9 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<DirectDisposalViewModel>(
-      create: (_) => DirectDisposalViewModel(),
+      create: (_) => getIt.isRegistered<DirectDisposalViewModel>()
+          ? getIt<DirectDisposalViewModel>()
+          : DirectDisposalViewModel(),
       child: Scaffold(
         backgroundColor: const Color(0xFFFAFAFA),
         body: SafeArea(
