@@ -27,6 +27,56 @@ void main() {
       expect(issue.isResolved, isFalse);
     });
 
+    test('IssueModel.fromJson parses API response format correctly', () {
+      final jsonResolved = {
+        "id": 97,
+        "user_name": "Main Road",
+        "user_email": "",
+        "user_phone": "",
+        "pickup_id": 77,
+        "issue_type": "collection",
+        "subject": "Dispose by themselves",
+        "description": "Collector marked warning with reason: Dispose by themselves.",
+        "status": "resolved",
+        "priority": "medium",
+        "created_at": "2026-09-10 08:52:08.400957+00:00",
+        "updated_at": "2026-10-01 10:38:49.563783+00:00",
+        "resolved_at": "2026-10-01 10:38:49.562809+00:00",
+        "resolution_notes": "Resolved by collector."
+      };
+
+      final issueResolved = IssueModel.fromJson(jsonResolved);
+      expect(issueResolved.id, '97');
+      expect(issueResolved.title, 'Dispose by themselves');
+      expect(issueResolved.userName, 'Main Road');
+      expect(issueResolved.userInitial, 'M');
+      expect(issueResolved.isResolved, isTrue);
+
+      final jsonPending = {
+        "id": 96,
+        "user_name": "noel",
+        "user_email": "noel@gmail.com",
+        "user_phone": "5674564897",
+        "pickup_id": 23,
+        "issue_type": "collection",
+        "subject": "Dispose by themselves",
+        "description": "Collector marked warning with reason: Dispose by themselves.",
+        "status": "pending",
+        "priority": "medium",
+        "created_at": "2026-09-10 08:51:07.850376+00:00",
+        "updated_at": "2026-09-10 08:51:07.850420+00:00",
+        "resolved_at": null,
+        "resolution_notes": null
+      };
+
+      final issuePending = IssueModel.fromJson(jsonPending);
+      expect(issuePending.id, '96');
+      expect(issuePending.title, 'Dispose by themselves');
+      expect(issuePending.userName, 'noel');
+      expect(issuePending.phoneNumber, '5674564897');
+      expect(issuePending.isResolved, isFalse);
+    });
+
     test('IssuesViewModel tab switching and counts', () async {
       final vm = IssuesViewModel();
       await vm.loadData();
@@ -164,6 +214,28 @@ void main() {
       // Progress indicator disappears and list is back
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.text('noel'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Renders issue card with long user name and phone number without overflow on narrow device',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: IssuesManagementScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
     });
   });
 }

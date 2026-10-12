@@ -1,6 +1,47 @@
+import 'dart:convert';
+import 'package:floret_collector/core/di/injection.dart';
+import 'package:floret_collector/services/api_client.dart';
+import 'package:floret_collector/services/api_endpoints.dart';
 import '../model/faq_item_model.dart';
+import '../model/help_support_model.dart';
 
 class HelpSupportRepository {
+  final ApiClient _apiClient;
+
+  HelpSupportRepository({ApiClient? apiClient})
+      : _apiClient = apiClient ??
+            (getIt.isRegistered<ApiClient>() ? getIt<ApiClient>() : ApiClient());
+
+  ApiClient get apiClient => _apiClient;
+
+  HelpSupportModel? _helpSupportInfo;
+  HelpSupportModel? get helpSupportInfo => _helpSupportInfo;
+
+  Future<HelpSupportModel?> fetchHelpSupport() async {
+    try {
+      final response = await _apiClient.get(APIEndPoints.helpSupport);
+
+      // Print response formatted like the API response
+      try {
+        const encoder = JsonEncoder.withIndent('  ');
+        final formattedJson = encoder.convert(response.data);
+        // ignore: avoid_print
+        print(formattedJson);
+      } catch (_) {
+        // ignore: avoid_print
+        print(response.data);
+      }
+
+      if (response.data is Map) {
+        final data = Map<String, dynamic>.from(response.data as Map);
+        _helpSupportInfo = HelpSupportModel.fromJson(data);
+        return _helpSupportInfo;
+      }
+    } catch (_) {}
+
+    return _helpSupportInfo;
+  }
+
   final List<FaqItemModel> _faqs = const [
     FaqItemModel(
       id: '1',

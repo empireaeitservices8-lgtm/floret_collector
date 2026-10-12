@@ -1,4 +1,4 @@
-import 'package:intl/intl.dart';
+import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/providers/view_model.dart';
 import '../model/direct_disposal_model.dart';
 import '../repos/direct_disposal_repository.dart';
@@ -33,7 +33,10 @@ class DirectDisposalViewModel extends ViewModel {
   bool _hasAttemptedSubmit = false;
 
   DirectDisposalViewModel({DirectDisposalRepository? repository})
-      : _repository = repository ?? DirectDisposalRepository() {
+      : _repository = repository ??
+            (getIt.isRegistered<DirectDisposalRepository>()
+                ? getIt<DirectDisposalRepository>()
+                : DirectDisposalRepository()) {
     loadLogs();
   }
 
@@ -232,28 +235,29 @@ class DirectDisposalViewModel extends ViewModel {
     final isValid = validateForm();
     if (!isValid) return false;
 
-    final now = DateTime.now();
-    final formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(now);
+    String mappedDisposalType = _disposalType.toLowerCase().replaceAll(' ', '_');
+    if (mappedDisposalType == 'walk_in' || mappedDisposalType.isEmpty) {
+      mappedDisposalType = 'direct';
+    }
 
-    final newLog = DirectDisposalLogModel(
-      id: '${DateTime.now().millisecondsSinceEpoch}',
+    String mappedWasteType = _wasteType.toLowerCase().replaceAll(' waste', '');
+    if (mappedWasteType.isEmpty) {
+      mappedWasteType = 'plastic';
+    }
+
+    await _repository.recordDisposal(
       customerName: _customerName.trim(),
-      phone: _phone.trim(),
+      customerPhone: _phone.trim(),
       customerAddress: _customerAddress.trim(),
-      disposalType: _disposalType,
-      wasteType: _wasteType,
-      wasteDescription: _wasteDescription.trim(),
+      disposalType: mappedDisposalType,
+      wasteType: mappedWasteType,
+      wasteDescription: _wasteDescription.trim().isEmpty
+          ? 'Mixed waste'
+          : _wasteDescription.trim(),
       weight: _weight,
-      rate: _rate,
-      gstRatePercent: gstPercentage,
-      gstAmount: gstAmount,
-      totalAmount: totalAmount,
-      paymentMethod: _paymentMethod,
-      paymentStatus: _paymentStatus,
-      formattedDate: formattedDate,
+      disposalRate: _rate,
     );
 
-    await _repository.addLog(newLog);
     await loadLogs();
 
     // Reset Form

@@ -33,6 +33,49 @@ void main() {
       expect(log.isPaid, isFalse);
     });
 
+    test('DirectDisposalLogModel.fromJson parses API response format correctly', () {
+      final json = {
+        "id": 36,
+        "customer_name": "John Doe",
+        "customer_phone": "9876543210",
+        "customer_address": "123 Main Street, Kochi",
+        "disposal_type": "direct",
+        "waste_type": "plastic",
+        "waste_description": "Mixed plastic waste",
+        "weight": "15.50",
+        "disposal_rate": "15.00",
+        "local_body": 15,
+        "local_body_name": "Kalady Grama Panchayat",
+        "ward": "1",
+        "subtotal": "232.50",
+        "gst_amount": "41.85",
+        "total_amount": "274.35",
+        "payment_status": "pending",
+        "payment_method": null,
+        "transaction_id": null,
+        "remarks": null,
+        "recorded_by": null,
+        "disposal_date": "2026-10-12",
+        "disposal_time": "06:51:30.513996",
+        "created_at": "2026-10-12T06:51:30.514259Z",
+        "updated_at": "2026-10-12T06:51:30.514293Z"
+      };
+
+      final log = DirectDisposalLogModel.fromJson(json);
+      expect(log.id, '36');
+      expect(log.customerName, 'John Doe');
+      expect(log.phone, '9876543210');
+      expect(log.customerAddress, '123 Main Street, Kochi');
+      expect(log.disposalType, 'DIRECT');
+      expect(log.wasteType, 'plastic');
+      expect(log.weight, 15.5);
+      expect(log.rate, 15.0);
+      expect(log.gstAmount, 41.85);
+      expect(log.totalAmount, 274.35);
+      expect(log.paymentStatus, 'PENDING');
+      expect(log.isPaid, isFalse);
+    });
+
     test('Financial calculations update dynamically with weight and rate', () {
       final vm = DirectDisposalViewModel();
 

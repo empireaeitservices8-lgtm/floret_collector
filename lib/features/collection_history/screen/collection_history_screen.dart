@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:floret_collector/core/di/injection.dart';
 import '../model/collection_history_model.dart';
 import '../viewmodel/collection_history_view_model.dart';
 import 'collection_filter_bottom_sheet.dart';
@@ -34,7 +35,9 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<CollectionHistoryViewModel>(
-      create: (_) => CollectionHistoryViewModel(),
+      create: (_) => getIt.isRegistered<CollectionHistoryViewModel>()
+          ? getIt<CollectionHistoryViewModel>()
+          : CollectionHistoryViewModel(),
       child: Scaffold(
         backgroundColor: const Color(0xFFFAFAFA),
         body: SafeArea(

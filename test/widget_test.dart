@@ -8,14 +8,95 @@ import 'package:floret_collector/features/login/viewmodel/login_view_model.dart'
 import 'package:floret_collector/features/splash/screen/splash_screen.dart';
 import 'package:floret_collector/features/main/screen/main_screen.dart';
 import 'package:floret_collector/features/home/screen/home_screen.dart';
+import 'package:floret_collector/features/home/viewmodel/home_view_model.dart';
 import 'package:floret_collector/features/schedule/screen/schedule_screen.dart';
 import 'package:floret_collector/features/notification/screen/notification_screen.dart';
 import 'package:floret_collector/features/menu/screen/menu_screen.dart';
+import 'package:floret_collector/features/login/model/collector_model.dart';
+import 'package:floret_collector/features/login/model/login_model.dart';
+import 'package:floret_collector/features/login/model/user_model.dart';
+import 'package:floret_collector/features/login/repos/login_repository.dart';
+import 'package:floret_collector/core/di/injection.dart';
+import 'package:floret_collector/features/billing_history/model/billing_history_model.dart';
+import 'package:floret_collector/features/billing_history/repos/billing_history_repository.dart';
 import 'package:floret_collector/features/billing_history/screen/billing_history_screen.dart';
 import 'package:floret_collector/features/billing_history/viewmodel/billing_history_view_model.dart';
 import 'package:floret_collector/utils/routes.dart';
 
+class _FakeLoginRepository implements LoginRepository {
+  @override
+  Future<UserModel> login(LoginRequestModel request) async =>
+      const UserModel(message: '', token: '', collector: CollectorModel(id: 0, username: '', name: '', email: '', phone: '', vehicleName: '', vehicleNumber: ''));
+  @override
+  Future<String?> getSavedToken() async => null;
+  @override
+  Future<void> logout() async {}
+}
+
+class _FakeBillingHistoryRepository implements BillingHistoryRepository {
+  @override
+  Future<List<BillItemModel>> fetchBills({String? userName}) async {
+    return const [
+      BillItemModel(
+        id: '234',
+        stopId: '77',
+        stopName: 'ne',
+        weight: '0.0',
+        rate: '42.00',
+        amount: '16.52',
+        method: 'Cash',
+        status: 'Paid',
+        date: '10 Sep 2026, 02:25 PM',
+      ),
+      BillItemModel(
+        id: '233',
+        stopId: '77',
+        stopName: 'ne',
+        weight: '0.0',
+        rate: '10.00',
+        amount: '24.78',
+        method: 'Cash',
+        status: 'Paid',
+        date: '10 Sep 2026, 02:25 PM',
+      ),
+      BillItemModel(
+        id: '232',
+        stopId: '23',
+        stopName: 'jos',
+        weight: '0.0',
+        rate: '42.00',
+        amount: '16.52',
+        method: 'Cash',
+        status: 'Paid',
+        date: '10 Sep 2026, 02:23 PM',
+      ),
+      BillItemModel(
+        id: '179',
+        stopId: '12',
+        stopName: 'jos',
+        weight: '50.5',
+        rate: '2.00',
+        amount: '101.00',
+        method: 'Online',
+        status: 'Paid',
+        date: '05 Sep 2026, 12:45 PM',
+      ),
+    ];
+  }
+}
+
 void main() {
+  setUp(() async {
+    if (!getIt.isRegistered<HomeViewModel>()) {
+      await initializeDependencies();
+    }
+    if (getIt.isRegistered<BillingHistoryRepository>()) {
+      getIt.unregister<BillingHistoryRepository>();
+    }
+    getIt.registerSingleton<BillingHistoryRepository>(
+      _FakeBillingHistoryRepository(),
+    );
+  });
   test('App configuration test', () {
     expect(AppConfig.appName, 'floret_collector');
     expect(AppConfig.bundleId, 'com.floret_collector');
@@ -24,7 +105,7 @@ void main() {
   });
 
   test('LoginViewModel validation and state test', () {
-    final vm = LoginViewModel(repository: null);
+    final vm = LoginViewModel(repository: _FakeLoginRepository());
     expect(vm.isFormValid, isFalse);
     expect(vm.isPasswordVisible, isFalse);
 
@@ -189,14 +270,15 @@ void main() {
     expect(find.text('Bill #232'), findsOneWidget);
 
     // Tap back button to return to MenuScreen
-    await tester.tap(find.byTooltip('Back'));
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
     await tester.pumpAndSettle();
     expect(find.byType(BillingHistoryScreen), findsNothing);
     expect(find.byType(MenuScreen), findsOneWidget);
   });
 
   test('BillingHistoryViewModel filtering and options test', () async {
-    final vm = BillingHistoryViewModel();
+    final vm =
+        BillingHistoryViewModel(repository: _FakeBillingHistoryRepository());
     expect(vm.methodOptions, ['All', 'Cash', 'Online']);
     expect(vm.statusOptions, ['All', 'Paid', 'Pending']);
 

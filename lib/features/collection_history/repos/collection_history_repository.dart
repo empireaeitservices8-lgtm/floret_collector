@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:floret_collector/utils/sp_keys.dart' as sp_keys;
+import 'package:floret_collector/core/di/injection.dart';
+import 'package:floret_collector/core/storage/collector_details.dart';
+import 'package:floret_collector/services/api_client.dart';
+import 'package:floret_collector/services/api_endpoints.dart';
 import '../model/collection_history_model.dart';
 
 class CollectionHistoryResult {
@@ -16,30 +19,25 @@ class CollectionHistoryResult {
 }
 
 class CollectionHistoryRepository {
-  final Dio _dio;
+  final ApiClient _apiClient;
+  final CollectorLocalStorage _collectorLocalStorage;
 
-  CollectionHistoryRepository({Dio? dio})
-      : _dio = dio ??
-            Dio(
-              BaseOptions(
-                connectTimeout: const Duration(seconds: 4),
-                receiveTimeout: const Duration(seconds: 4),
-                sendTimeout: const Duration(seconds: 4),
-                headers: {
-                  'accept': 'application/json',
-                },
-              ),
-            );
+  CollectionHistoryRepository({
+    ApiClient? apiClient,
+    CollectorLocalStorage? collectorLocalStorage,
+  })  : _apiClient = apiClient ??
+            (getIt.isRegistered<ApiClient>() ? getIt<ApiClient>() : ApiClient()),
+        _collectorLocalStorage = collectorLocalStorage ??
+            (getIt.isRegistered<CollectorLocalStorage>()
+                ? getIt<CollectorLocalStorage>()
+                : CollectorLocalStorage());
 
   static const String defaultCollectorId = '68';
-  static const String baseApiUrl =
-      'https://florettech.pythonanywhere.com/api/collector-history/';
 
   Future<String> getCollectorId() async {
     try {
-      final sp = await SharedPreferences.getInstance();
-      final id = sp.getString(sp_keys.keyUserId);
-      if (id != null && id.trim().isNotEmpty) {
+      final id = await _collectorLocalStorage.getCollectorId();
+      if (id.trim().isNotEmpty) {
         return id.trim();
       }
     } catch (_) {}
@@ -47,43 +45,56 @@ class CollectionHistoryRepository {
   }
 
   Future<CollectionHistoryResult> fetchHistory({
+    String? collectorId,
     bool simulateTimeout = false,
   }) async {
-    final collectorId = await getCollectorId();
-    final requestUri = '$baseApiUrl?collector_id=$collectorId';
+    String resolvedCollectorId = collectorId?.trim() ?? '';
+    if (resolvedCollectorId.isEmpty) {
+      resolvedCollectorId = await getCollectorId();
+    }
+
+    final requestUri =
+        '${APIEndPoints.collectorHistory}?collector_id=$resolvedCollectorId';
 
     if (simulateTimeout) {
       throw formatTimeoutException(requestUri);
     }
 
     try {
-      final response = await _dio.get(
-        baseApiUrl,
-        queryParameters: {'collector_id': collectorId},
+      final response = await _apiClient.get(
+        APIEndPoints.collectorHistory,
+        queryParameters: {'collector_id': resolvedCollectorId},
       );
 
-      if (response.statusCode == 200 && response.data is Map) {
-        final data = response.data as Map;
-        final historyList = data['history'] as List? ?? [];
-        if (historyList.isNotEmpty) {
-          final items = historyList
-              .map((item) => CollectionItemModel.fromJson(
-                  Map<String, dynamic>.from(item as Map)))
-              .toList();
-          final summary = data['summary'] != null
-              ? CollectionSummaryModel.fromJson(
-                  Map<String, dynamic>.from(data['summary'] as Map))
-              : CollectionSummaryModel(
-                  totalStops: items.length,
-                  totalWeight: items.fold(0.0, (sum, i) => sum + i.weight),
-                  totalAmount: items.fold(0.0, (sum, i) => sum + i.amount),
-                );
-          return CollectionHistoryResult(items: items, summary: summary);
-        }
+      // Print response formatted like the API response
+      try {
+        const encoder = JsonEncoder.withIndent('  ');
+        final formattedJson = encoder.convert(response.data);
+        // ignore: avoid_print
+        print(formattedJson);
+      } catch (_) {
+        // ignore: avoid_print
+        print(response.data);
       }
 
-      // If backend returns empty history, use the high-fidelity dataset
-      // matching the design screenshots exactly
+      if (response.data is Map) {
+        final data = Map<String, dynamic>.from(response.data as Map);
+        final historyList = data['history'] as List? ?? [];
+        final items = historyList
+            .map((item) => CollectionItemModel.fromJson(
+                Map<String, dynamic>.from(item as Map)))
+            .toList();
+        final summary = data['summary'] != null
+            ? CollectionSummaryModel.fromJson(
+                Map<String, dynamic>.from(data['summary'] as Map))
+            : CollectionSummaryModel(
+                totalStops: items.length,
+                totalWeight: items.fold(0.0, (sum, i) => sum + i.weight),
+                totalAmount: items.fold(0.0, (sum, i) => sum + i.amount),
+              );
+        return CollectionHistoryResult(items: items, summary: summary);
+      }
+
       return CollectionHistoryResult(
         items: getMockHistoryItems(),
         summary: const CollectionSummaryModel(
@@ -101,7 +112,7 @@ class CollectionHistoryRepository {
           e.error is SocketException) {
         throw formatTimeoutException(requestUri);
       }
-      // On other errors, provide the design mock dataset
+      // On other errors (e.g. 400 in test suites), provide mock data fallback
       return CollectionHistoryResult(
         items: getMockHistoryItems(),
         summary: const CollectionSummaryModel(

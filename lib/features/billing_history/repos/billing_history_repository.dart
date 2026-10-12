@@ -1,98 +1,73 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:floret_collector/core/di/injection.dart';
+import 'package:floret_collector/core/storage/collector_details.dart';
+import 'package:floret_collector/services/api_client.dart';
+import 'package:floret_collector/services/api_endpoints.dart';
 import '../model/billing_history_model.dart';
-import 'package:floret_collector/services/web_api_services.dart';
 
-class BillingHistoryRepository {
-  final WebAPIService _webAPIService;
+abstract class BillingHistoryRepository {
+  factory BillingHistoryRepository({
+    ApiClient? apiClient,
+    CollectorLocalStorage? collectorLocalStorage,
+  }) = BillingHistoryRepositoryImpl;
 
-  BillingHistoryRepository({WebAPIService? webAPIService})
-      : _webAPIService = webAPIService ?? WebAPIService();
+  Future<List<BillItemModel>> fetchBills({String? userName});
+}
 
-  WebAPIService get webAPIService => _webAPIService;
+class BillingHistoryRepositoryImpl implements BillingHistoryRepository {
+  final ApiClient _apiClient;
+  final CollectorLocalStorage _collectorLocalStorage;
 
-  Future<List<BillItemModel>> fetchBills() async {
+  BillingHistoryRepositoryImpl({
+    ApiClient? apiClient,
+    CollectorLocalStorage? collectorLocalStorage,
+  })  : _apiClient = apiClient ??
+            (getIt.isRegistered<ApiClient>() ? getIt<ApiClient>() : ApiClient()),
+        _collectorLocalStorage = collectorLocalStorage ??
+            (getIt.isRegistered<CollectorLocalStorage>()
+                ? getIt<CollectorLocalStorage>()
+                : CollectorLocalStorage());
+
+  @override
+  Future<List<BillItemModel>> fetchBills({String? userName}) async {
     try {
-      // Mock data matching exact bills shown in design screenshots
-      return const [
-        BillItemModel(
-          id: '234',
-          stopId: '77',
-          stopName: 'ne',
-          weight: '0.0',
-          rate: '42.00',
-          amount: '16.52',
-          method: 'Cash',
-          status: 'Paid',
-          date: '10 Sep 2026, 02:25 PM',
-        ),
-        BillItemModel(
-          id: '233',
-          stopId: '77',
-          stopName: 'ne',
-          weight: '0.0',
-          rate: '10.00',
-          amount: '24.78',
-          method: 'Cash',
-          status: 'Paid',
-          date: '10 Sep 2026, 02:25 PM',
-        ),
-        BillItemModel(
-          id: '232',
-          stopId: '23',
-          stopName: 'jos',
-          weight: '0.0',
-          rate: '42.00',
-          amount: '16.52',
-          method: 'Cash',
-          status: 'Paid',
-          date: '10 Sep 2026, 02:23 PM',
-        ),
-        BillItemModel(
-          id: '179',
-          stopId: '12',
-          stopName: 'jos',
-          weight: '50.5',
-          rate: '2.00',
-          amount: '101.00',
-          method: 'Online',
-          status: 'Paid',
-          date: '05 Sep 2026, 12:45 PM',
-        ),
-        BillItemModel(
-          id: '178',
-          stopId: '12',
-          stopName: 'jos',
-          weight: '50.5',
-          rate: '2.00',
-          amount: '101.00',
-          method: 'Online',
-          status: 'Paid',
-          date: '05 Sep 2026, 12:44 PM',
-        ),
-        BillItemModel(
-          id: '177',
-          stopId: '13',
-          stopName: 'jos',
-          weight: '17.5',
-          rate: '2.50',
-          amount: '43.75',
-          method: 'Online',
-          status: 'Paid',
-          date: '05 Sep 2026, 12:44 PM',
-        ),
-        BillItemModel(
-          id: '165',
-          stopId: '09',
-          stopName: 'ne',
-          weight: '12.0',
-          rate: '5.00',
-          amount: '60.00',
-          method: 'Cash',
-          status: 'Pending',
-          date: '01 Sep 2026, 10:15 AM',
-        ),
-      ];
-    } catch (_) {
-      return [];
+      String resolvedUserName = userName?.trim() ?? '';
+      if (resolvedUserName.isEmpty) {
+        resolvedUserName = await _collectorLocalStorage.getUsername();
+      }
+
+      final queryParams = resolvedUserName.isNotEmpty
+          ? {'user_name': resolvedUserName}
+          : null;
+
+      final response = await _apiClient.get(
+        APIEndPoints.billHistory,
+        queryParameters: queryParams,
+      );
+
+      // Print response formatted like the API response
+      try {
+        const encoder = JsonEncoder.withIndent('  ');
+        final formattedJson = encoder.convert(response.data);
+        // ignore: avoid_print
+        print(formattedJson);
+      } catch (_) {
+        // ignore: avoid_print
+        print(response.data);
+      }
+
+      final List<dynamic> data =
+          response.data is List ? response.data as List<dynamic> : [];
+
+      return data
+          .map((item) => BillItemModel.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching bills from API: $e');
+      rethrow;
     }
   }
 }

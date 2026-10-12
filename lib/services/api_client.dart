@@ -14,8 +14,14 @@ class ApiClient {
     ),
   );
 
-  Future<Response> get(String endpoint) async {
-    return dio.get(endpoint);
+  Future<Response> get(
+    String endpoint, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    return dio.get(
+      endpoint,
+      queryParameters: queryParameters,
+    );
   }
 
   Future<Response> post(

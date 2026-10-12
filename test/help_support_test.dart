@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:floret_collector/features/help_support/model/faq_item_model.dart';
+import 'package:floret_collector/features/help_support/model/help_support_model.dart';
 import 'package:floret_collector/features/help_support/viewmodel/help_support_view_model.dart';
 import 'package:floret_collector/features/help_support/screen/help_support_screen.dart';
 
@@ -23,6 +24,36 @@ void main() {
       expect(json['id'], '1');
       final parsed = FaqItemModel.fromJson(json);
       expect(parsed.question, model.question);
+    });
+
+    test('HelpSupportModel parses API response format correctly', () {
+      final json = {
+        "contact": {
+          "email": "floretbilling@gmail.com",
+          "phone": "94460 02666",
+          "phone_formatted": "+91 94460 02666"
+        },
+        "support_hours": {
+          "days": "Monday to Saturday",
+          "time": "9:00 AM - 6:00 PM"
+        },
+        "services": [
+          "Billing inquiries",
+          "Payment issues",
+          "Waste collection scheduling",
+          "Account support",
+          "Technical assistance"
+        ]
+      };
+
+      final model = HelpSupportModel.fromJson(json);
+      expect(model.contact.email, "floretbilling@gmail.com");
+      expect(model.contact.phone, "94460 02666");
+      expect(model.contact.phoneFormatted, "+91 94460 02666");
+      expect(model.supportHours.days, "Monday to Saturday");
+      expect(model.supportHours.time, "9:00 AM - 6:00 PM");
+      expect(model.services.length, 5);
+      expect(model.services.first, "Billing inquiries");
     });
 
     test('HelpSupportViewModel loads 6 FAQs initially', () async {

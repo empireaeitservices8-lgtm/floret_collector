@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/providers/view_model.dart';
 import '../model/billing_history_model.dart';
 import '../repos/billing_history_repository.dart';
@@ -9,25 +11,37 @@ class BillingHistoryViewModel extends ViewModel {
   String _searchQuery = '';
   String _selectedMethod = 'All';
   String _selectedStatus = 'All';
+  String? _errorMessage;
 
   final List<String> methodOptions = const ['All', 'Cash', 'Online'];
   final List<String> statusOptions = const ['All', 'Paid', 'Pending'];
 
   BillingHistoryViewModel({BillingHistoryRepository? repository})
-      : _repository = repository ?? BillingHistoryRepository() {
+      : _repository = repository ??
+            (getIt.isRegistered<BillingHistoryRepository>()
+                ? getIt<BillingHistoryRepository>()
+                : BillingHistoryRepository()) {
     loadBills();
   }
 
   String get searchQuery => _searchQuery;
   String get selectedMethod => _selectedMethod;
   String get selectedStatus => _selectedStatus;
+  String? get errorMessage => _errorMessage;
 
   List<BillItemModel> get filteredBills {
     return _allBills.where((bill) {
       // Method filter: All, Cash, Online
-      if (_selectedMethod != 'All' &&
-          bill.method.toLowerCase() != _selectedMethod.toLowerCase()) {
-        return false;
+      if (_selectedMethod != 'All') {
+        final selected = _selectedMethod.toLowerCase();
+        final billMethod = bill.method.toLowerCase();
+        if (selected == 'cash') {
+          if (!billMethod.contains('cash')) return false;
+        } else if (selected == 'online') {
+          if (billMethod.contains('cash')) return false;
+        } else if (billMethod != selected) {
+          return false;
+        }
       }
 
       // Status filter: All, Paid, Pending
@@ -45,7 +59,10 @@ class BillingHistoryViewModel extends ViewModel {
         final matchesCombined =
             '#${bill.stopId} • ${bill.stopName}'.toLowerCase().contains(query);
 
-        if (!matchesId && !matchesStopId && !matchesStopName && !matchesCombined) {
+        if (!matchesId &&
+            !matchesStopId &&
+            !matchesStopName &&
+            !matchesCombined) {
           return false;
         }
       }
@@ -54,14 +71,20 @@ class BillingHistoryViewModel extends ViewModel {
     }).toList();
   }
 
-  Future<void> loadBills() async {
+  Future<void> loadBills({String? userName}) async {
     isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
-    _allBills = await _repository.fetchBills();
-
-    isLoading = false;
-    notifyListeners();
+    try {
+      _allBills = await _repository.fetchBills(userName: userName);
+    } catch (e) {
+      debugPrint('Failed to load bills: $e');
+      _errorMessage = 'Unable to load billing history. Please check connection.';
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 
   void setSearchQuery(String query) {

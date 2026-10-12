@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:floret_collector/core/di/injection.dart';
 import '../model/billing_history_model.dart';
 import '../viewmodel/billing_history_view_model.dart';
 
@@ -30,7 +31,9 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<BillingHistoryViewModel>(
-      create: (_) => BillingHistoryViewModel(),
+      create: (_) => getIt.isRegistered<BillingHistoryViewModel>()
+          ? getIt<BillingHistoryViewModel>()
+          : BillingHistoryViewModel(),
       child: Scaffold(
         backgroundColor: const Color(0xFFFAFAFA),
         body: SafeArea(
@@ -56,7 +59,6 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                             color: Color(0xFF1E293B),
                             size: 24,
                           ),
-                          tooltip: 'Back',
                         ),
                         const Text(
                           'Billing History',
@@ -74,7 +76,6 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                             color: Color(0xFF1E293B),
                             size: 24,
                           ),
-                          tooltip: 'Refresh',
                         ),
                       ],
                     ),
@@ -173,8 +174,10 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                               ),
                             ),
                           )
-                        : bills.isEmpty
-                            ? _buildEmptyState()
+                        : vm.errorMessage != null && bills.isEmpty
+                            ? _buildErrorState(vm)
+                            : bills.isEmpty
+                                ? _buildEmptyState()
                             : RefreshIndicator(
                                 onRefresh: vm.loadBills,
                                 color: const Color(0xFF2E7D32),
@@ -212,7 +215,7 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           return PopupMenuButton<String>(
-            tooltip: '',
+            tooltip: null,
             position: PopupMenuPosition.over,
             constraints: BoxConstraints(
               minWidth: constraints.maxWidth,
@@ -347,6 +350,70 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                 fontWeight: FontWeight.w400,
                 color: Color(0xFF64748B),
                 height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BillingHistoryViewModel vm) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 90,
+              height: 90,
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEF2F2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline_rounded,
+                size: 46,
+                color: Color(0xFFEF4444),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Failed to Load Bills',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1E293B),
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              vm.errorMessage ?? 'Something went wrong while fetching bills.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF64748B),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: vm.loadBills,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
               ),
             ),
           ],

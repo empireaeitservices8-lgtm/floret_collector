@@ -1,3 +1,4 @@
+import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/providers/view_model.dart';
 import '../model/issue_model.dart';
 import '../repos/issues_repository.dart';
@@ -13,7 +14,10 @@ class IssuesViewModel extends ViewModel {
   int _refreshCounter = 0;
 
   IssuesViewModel({IssuesRepository? repository})
-      : _repository = repository ?? IssuesRepository() {
+      : _repository = repository ??
+            (getIt.isRegistered<IssuesRepository>()
+                ? getIt<IssuesRepository>()
+                : IssuesRepository()) {
     loadData();
   }
 
