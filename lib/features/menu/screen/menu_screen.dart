@@ -6,6 +6,7 @@ import '../../collection_history/screen/collection_history_screen.dart';
 import '../../issues_management/screen/issues_management_screen.dart';
 import '../../direct_disposal/screen/direct_disposal_screen.dart';
 import '../../help_support/screen/help_support_screen.dart';
+import 'vehicle_assignment_bottom_sheet.dart';
 
 class MenuScreen extends StatelessWidget {
   static const String routeName = '/MenuScreen';
@@ -130,36 +131,45 @@ class MenuScreen extends StatelessWidget {
                                     letterSpacing: 0.6,
                                   ),
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEFF6FF),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: const Color(0xFFDBEAFE),
+                                InkWell(
+                                  onTap: () {
+                                    VehicleAssignmentBottomSheet.show(
+                                      context: context,
+                                      viewModel: vm,
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
                                     ),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.edit_note_rounded,
-                                        size: 16,
-                                        color: Color(0xFF2563EB),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEFF6FF),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: const Color(0xFFDBEAFE),
                                       ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Assign (Admin)',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.edit_note_rounded,
+                                          size: 16,
                                           color: Color(0xFF2563EB),
                                         ),
-                                      ),
-                                    ],
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Assign (Admin)',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF2563EB),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],
@@ -243,10 +253,32 @@ class MenuScreen extends StatelessWidget {
                                       ],
                                     ),
                                   ),
-                                  const Icon(
-                                    Icons.refresh_rounded,
-                                    size: 20,
-                                    color: Color(0xFF64748B),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.refresh_rounded,
+                                      size: 20,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                    tooltip: 'Refresh Vehicle Details',
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () async {
+                                      final res = await vm.fetchVehicleAssignment();
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              res != null
+                                                  ? 'Vehicle assignment updated'
+                                                  : 'Failed to update vehicle details',
+                                              style: const TextStyle(color: Colors.white),
+                                            ),
+                                            backgroundColor: Colors.black,
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                      }
+                                    },
                                   ),
                                 ],
                               ),

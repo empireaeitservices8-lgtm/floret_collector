@@ -25,6 +25,52 @@ class MenuViewModel extends ViewModel {
     notifyListeners();
   }
 
+  Future<Map<String, dynamic>?> fetchVehicleAssignment({String? collectorId}) async {
+    try {
+      final res = await _repository.fetchVehicleAssignment(collectorId: collectorId);
+      final vName = res['vehicle_name']?.toString() ?? _profile.vehicleName;
+      final vNum = res['vehicle_number']?.toString() ?? _profile.regNo;
+      final aPhoto = res['aadhaar_card_photo']?.toString() ?? _profile.aadhaarPhoto;
+      final cName = res['collector_name']?.toString();
+      _profile = _profile.copyWith(
+        vehicleName: vName,
+        regNo: vNum,
+        aadhaarPhoto: aPhoto,
+        name: (cName != null && cName.isNotEmpty) ? cName : _profile.name,
+      );
+      notifyListeners();
+      return res;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> assignVehicle({
+    required String collectorId,
+    required String vehicleName,
+    required String vehicleNumber,
+    String? aadhaarPhoto,
+  }) async {
+    try {
+      final res = await _repository.assignVehicle(
+        collectorId: collectorId,
+        vehicleName: vehicleName,
+        vehicleNumber: vehicleNumber,
+        aadhaarPhoto: aadhaarPhoto,
+      );
+      _profile = _profile.copyWith(
+        collectorId: collectorId,
+        vehicleName: res['vehicle_name']?.toString() ?? vehicleName,
+        regNo: res['vehicle_number']?.toString() ?? vehicleNumber,
+        aadhaarPhoto: res['aadhaar_card_photo']?.toString() ?? aadhaarPhoto,
+      );
+      notifyListeners();
+      return res;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> logout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,

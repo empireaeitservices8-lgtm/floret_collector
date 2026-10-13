@@ -54,8 +54,11 @@ class _LoginViewState extends State<_LoginView> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Welcome ${result.collector.name}!'),
-        backgroundColor: const Color(0xFF2E7D32),
+        content: Text(
+          'Welcome ${result.collector.name}!',
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.black,
         behavior: SnackBarBehavior.floating,
       ),
     );

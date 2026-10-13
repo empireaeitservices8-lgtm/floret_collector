@@ -248,8 +248,8 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                     height: 48,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFFE2E8F0)
-                          : Colors.transparent,
+                          ? const Color(0xFFF1F5F9)
+                          : Colors.white,
                       borderRadius: isFirst
                           ? const BorderRadius.vertical(
                               top: Radius.circular(8),
@@ -267,7 +267,7 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                       style: const TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
+                        color: Colors.black,
                       ),
                     ),
                   ),
@@ -278,7 +278,7 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
               height: 48,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
@@ -293,7 +293,7 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                       style: const TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
+                        color: Colors.black,
                       ),
                     ),
                   ),

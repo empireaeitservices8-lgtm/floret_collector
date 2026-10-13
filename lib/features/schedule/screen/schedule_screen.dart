@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:floret_collector/features/home/model/location_pickup_model.dart';
 import '../viewmodel/schedule_view_model.dart';
 import 'schedule_filter_bottom_sheet.dart';
 import '../../main/viewmodel/main_view_model.dart';
@@ -18,7 +19,6 @@ class ScheduleScreen extends StatelessWidget {
         body: SafeArea(
           child: Consumer<ScheduleViewModel>(
             builder: (context, vm, _) {
-              final schedule = vm.schedule;
               return RefreshIndicator(
                 onRefresh: vm.loadSchedule,
                 color: const Color(0xFF2E7D32),
@@ -86,116 +86,13 @@ class ScheduleScreen extends StatelessWidget {
 
                       const SizedBox(height: 16),
 
-                      // Date Pill: "Wed, 30th Sep"
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Text(
-                          schedule.dateText,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
+                      // Horizontally scrollable date pills
+                      _buildDatePills(vm),
 
                       const SizedBox(height: 20),
 
-                      // Today's Progress Card
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  "Today's progress",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF1E293B),
-                                  ),
-                                ),
-                                Text(
-                                  schedule.progressText,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF1E293B),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            // Progress bar
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: SizedBox(
-                                width: double.infinity,
-                                height: 5,
-                                child: LinearProgressIndicator(
-                                  value: schedule.progressPercent,
-                                  backgroundColor: const Color(0xFFE2E8F0),
-                                  valueColor:
-                                      const AlwaysStoppedAnimation<Color>(
-                                    Color(0xFF93C5FD),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            // Pickups summary
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.assignment_outlined,
-                                  size: 18,
-                                  color: Color(0xFF64748B),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Sanitary pickups: ${schedule.sanitaryPickups}',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF64748B),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                const Icon(
-                                  Icons.grid_view_rounded,
-                                  size: 16,
-                                  color: Color(0xFF64748B),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Scrap pickups: ${schedule.scrapPickups}',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF64748B),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                      // Progress Card for Selected Date
+                      _buildProgressCard(vm),
 
                       const SizedBox(height: 28),
 
@@ -209,19 +106,40 @@ class ScheduleScreen extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 120),
+                      const SizedBox(height: 16),
 
-                      // Empty State Text
-                      const Center(
-                        child: Text(
-                          'No pickups match the selected filters.',
-                          style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF8C95A6),
+                      if (vm.isLoading)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 40),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF2E7D32),
+                              ),
+                            ),
                           ),
+                        )
+                      else if (vm.filteredPickups.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 60),
+                          child: Center(
+                            child: Text(
+                              vm.pickupsForSelectedDate.isEmpty
+                                  ? 'No pickups scheduled for this date.'
+                                  : 'No pickups match the selected filters.',
+                              style: const TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF8C95A6),
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        ...vm.filteredPickups.map(
+                          (pickup) => _buildPickupCard(pickup),
                         ),
-                      ),
 
                       const SizedBox(height: 40),
                     ],
@@ -231,6 +149,161 @@ class ScheduleScreen extends StatelessWidget {
             },
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDatePills(ScheduleViewModel vm) {
+    if (vm.availableDates.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: const Text(
+          'Today',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: vm.availableDates.map((dateStr) {
+          final isSelected = vm.selectedDate == dateStr;
+          final displayText = vm.formatPillDate(dateStr);
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: InkWell(
+              onTap: () => vm.selectDate(dateStr),
+              borderRadius: BorderRadius.circular(24),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isSelected
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFFE2E8F0),
+                    width: 1.0,
+                  ),
+                ),
+                child: Text(
+                  displayText,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: isSelected ? Colors.white : const Color(0xFF64748B),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildProgressCard(ScheduleViewModel vm) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                vm.progressHeaderTitle,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              Text(
+                vm.progressText,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              width: double.infinity,
+              height: 5,
+              child: LinearProgressIndicator(
+                value: vm.progressFraction,
+                backgroundColor: const Color(0xFFE2E8F0),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  Color(0xFF1E293B),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Pickups summary
+          Row(
+            children: [
+              const Icon(
+                Icons.assignment_outlined,
+                size: 18,
+                color: Color(0xFF64748B),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Sanitary pickups: ${vm.sanitaryPickupsText}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Icon(
+                Icons.grid_view_rounded,
+                size: 16,
+                color: Color(0xFF64748B),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Scrap pickups: ${vm.scrapPickupsText}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -257,5 +330,144 @@ class ScheduleScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildPickupCard(LocationPickupModel pickup) {
+    final statusColor = _statusColor(pickup.status);
+    final statusBg = _statusBgColor(pickup.status);
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.location_on_rounded,
+                size: 18,
+                color: Color(0xFF475569),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  pickup.street.isNotEmpty ? pickup.street : pickup.city,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.flag_rounded, size: 12, color: statusColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      _capitalize(pickup.status),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(left: 24),
+            child: Text(
+              pickup.pickupTimeSlot,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(left: 24),
+            child: Text(
+              'Pickup type: ${_wasteTypeShort(pickup.wasteType)}',
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF475569),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return const Color(0xFFD97706);
+      case 'picked':
+      case 'collected':
+      case 'completed':
+        return const Color(0xFF16A34A);
+      case 'arrived':
+        return const Color(0xFF2563EB);
+      case 'rejected':
+      case 'cancelled':
+        return const Color(0xFFDC2626);
+      default:
+        return const Color(0xFF64748B);
+    }
+  }
+
+  Color _statusBgColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return const Color(0xFFFEF3C7);
+      case 'picked':
+      case 'collected':
+      case 'completed':
+        return const Color(0xFFDCFCE7);
+      case 'arrived':
+        return const Color(0xFFDBEAFE);
+      case 'rejected':
+      case 'cancelled':
+        return const Color(0xFFFEE2E2);
+      default:
+        return const Color(0xFFF1F5F9);
+    }
+  }
+
+  String _capitalize(String s) {
+    if (s.isEmpty) return s;
+    return s[0].toUpperCase() + s.substring(1).toLowerCase();
+  }
+
+  String _wasteTypeShort(String wasteType) {
+    if (wasteType.toLowerCase().contains('sanitary')) return 'Sanitary';
+    if (wasteType.toLowerCase().contains('scrap')) return 'Scrap';
+    return wasteType;
   }
 }

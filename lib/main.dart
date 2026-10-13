@@ -15,7 +15,6 @@ import 'package:provider/provider.dart';
 import 'features/splash/screen/splash_screen.dart';
 import 'providers/language_provider.dart';
 import 'providers/theme_provider.dart';
-import 'utils/interceptors.dart';
 import 'utils/localization.dart';
 import 'utils/routes.dart';
 import 'utils/themes.dart';
@@ -56,6 +55,7 @@ class MyApp extends StatelessWidget {
           dark: appDarkTheme,
           builder: (theme, darkTheme) {
             return MaterialApp(
+              debugShowCheckedModeBanner: false,
               navigatorKey: AppConfig.navKey,
               title: AppConfig.appName,
               themeMode: context.watch<ThemeProvider>().themeMode,
@@ -90,7 +90,7 @@ class MyApp extends StatelessWidget {
 
                 if (kDebugMode) {
                   StackTrace.current.toString().log('', true);
-                  child = AppStackInterceptorBuilder(child: child!);
+                  //  child = AppStackInterceptorBuilder(child: child!);
                 }
                 return child!;
               },

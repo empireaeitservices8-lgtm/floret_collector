@@ -1,4 +1,4 @@
-﻿import 'package:floret_collector/utils/app_palette.dart';
+import 'package:floret_collector/utils/app_palette.dart';
 import 'package:floret_collector/utils/brand_colors.dart';
 import 'package:flutter/material.dart';
 
@@ -95,6 +95,18 @@ ThemeData _buildTheme({required Brightness brightness}) {
       color: colorScheme.outlineVariant,
       thickness: 1,
       space: 1,
+    ),
+    dropdownMenuTheme: DropdownMenuThemeData(
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStateProperty.all(Colors.white),
+        surfaceTintColor: WidgetStateProperty.all(Colors.white),
+      ),
+      textStyle: const TextStyle(color: Colors.black),
+    ),
+    popupMenuTheme: const PopupMenuThemeData(
+      color: Colors.white,
+      surfaceTintColor: Colors.white,
+      textStyle: TextStyle(color: Colors.black),
     ),
     chipTheme: base.chipTheme.copyWith(
       backgroundColor: colorScheme.surfaceContainerHighest
@@ -227,11 +239,13 @@ ThemeData _buildTheme({required Brightness brightness}) {
       }),
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: colorScheme.inverseSurface,
-      contentTextStyle: base.textTheme.bodyMedium?.copyWith(
-        color: colorScheme.onInverseSurface,
+      backgroundColor: Colors.black,
+      contentTextStyle: const TextStyle(
+        color: Colors.white,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
       ),
-      actionTextColor: colorScheme.tertiary,
+      actionTextColor: Colors.white,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),

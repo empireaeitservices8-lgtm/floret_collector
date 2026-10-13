@@ -30,7 +30,7 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
     _phoneController = TextEditingController();
     _addressController = TextEditingController();
     _descController = TextEditingController();
-    _weightController = TextEditingController(text: '0.0');
+    _weightController = TextEditingController();
     _rateController = TextEditingController(text: '2.00');
     _searchController = TextEditingController();
   }
@@ -682,12 +682,12 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                     Container(
                       height: 48,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: vm.weightError != null
                               ? const Color(0xFFEF4444)
-                              : const Color(0xFFF1F5F9),
+                              : const Color(0xFFE2E8F0),
                           width: 1,
                         ),
                       ),
@@ -704,33 +704,25 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                           color: Color(0xFF0F172A),
                           fontWeight: FontWeight.w600,
                         ),
-                        decoration: InputDecoration(
-                          prefixIcon: Center(
-                            child: Container(
-                              width: 17,
-                              height: 17,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(3.5),
-                                border: Border.all(
-                                  color: const Color(0xFF94A3B8),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Center(
-                                child: Container(
-                                  width: 4.5,
-                                  height: 4.5,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF94A3B8),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                            ),
+                        decoration: const InputDecoration(
+                          prefixIconConstraints: BoxConstraints(
+                            minWidth: 40,
+                            minHeight: 40,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.scale_rounded,
+                            size: 18,
+                            color: Color(0xFF94A3B8),
+                          ),
+                          hintText: '0.0',
+                          hintStyle: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF94A3B8),
+                            fontWeight: FontWeight.w500,
                           ),
                           border: InputBorder.none,
                           contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                              EdgeInsets.symmetric(horizontal: 10, vertical: 14),
                         ),
                       ),
                     ),
@@ -770,9 +762,9 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                     Container(
                       height: 48,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFF1F5F9)),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: TextField(
                         controller: _rateController,
@@ -788,8 +780,12 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                         decoration: const InputDecoration(
+                          prefixIconConstraints: BoxConstraints(
+                            minWidth: 40,
+                            minHeight: 40,
+                          ),
                           prefixIcon: Center(
-                            widthFactor: 1.5,
+                            widthFactor: 1.2,
                             child: Text(
                               '₹',
                               style: TextStyle(
@@ -801,7 +797,7 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                           ),
                           border: InputBorder.none,
                           contentPadding:
-                              EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                              EdgeInsets.symmetric(horizontal: 10, vertical: 14),
                         ),
                       ),
                     ),
@@ -1037,13 +1033,18 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                   _phoneController.clear();
                   _addressController.clear();
                   _descController.clear();
-                  _weightController.text = '0.0';
+                  _weightController.clear();
                   _rateController.text = '2.00';
 
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Direct disposal recorded successfully!'),
+                        content: Text(
+                          'Direct disposal recorded successfully!',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.black,
+                        behavior: SnackBarBehavior.floating,
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -1082,14 +1083,15 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: items.contains(value) ? value : items.first,
           isExpanded: true,
+          dropdownColor: Colors.white,
           icon: const Icon(
             Icons.arrow_drop_down_rounded,
             color: Color(0xFF64748B),
@@ -1097,7 +1099,7 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF0F172A),
+            color: Colors.black,
           ),
           onChanged: onChanged,
           items: items.map((item) {
@@ -1108,7 +1110,7 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF0F172A),
+                  color: Colors.black,
                 ),
               ),
             );

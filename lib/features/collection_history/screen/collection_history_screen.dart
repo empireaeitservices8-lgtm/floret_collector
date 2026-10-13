@@ -89,7 +89,10 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
                                   vm.isTimeoutError
                                       ? 'Restoring normal collection history...'
                                       : 'Simulating connection timeout...',
+                                  style: const TextStyle(color: Colors.white),
                                 ),
+                                backgroundColor: Colors.black,
+                                behavior: SnackBarBehavior.floating,
                                 duration: const Duration(seconds: 2),
                               ),
                             );

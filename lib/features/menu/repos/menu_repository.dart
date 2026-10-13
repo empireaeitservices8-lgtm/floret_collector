@@ -1,48 +1,199 @@
-import '../model/menu_model.dart';
+import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/core/storage/collector_details.dart';
+import 'package:floret_collector/services/api_client.dart';
+import 'package:floret_collector/services/api_endpoints.dart';
 import 'package:floret_collector/services/web_api_services.dart';
 import 'package:floret_collector/utils/sp_keys.dart' as sp_keys;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../model/menu_model.dart';
 
 class MenuRepository {
+  final ApiClient _apiClient;
   final WebAPIService _webAPIService;
   final CollectorLocalStorage _collectorLocalStorage;
 
   MenuRepository({
+    ApiClient? apiClient,
     WebAPIService? webAPIService,
     CollectorLocalStorage? collectorLocalStorage,
-  })  : _webAPIService = webAPIService ?? WebAPIService(),
-        _collectorLocalStorage =
-            collectorLocalStorage ?? CollectorLocalStorage();
+  })  : _apiClient = apiClient ??
+            (getIt.isRegistered<ApiClient>()
+                ? getIt<ApiClient>()
+                : ApiClient()),
+        _webAPIService = webAPIService ?? WebAPIService(),
+        _collectorLocalStorage = collectorLocalStorage ??
+            (getIt.isRegistered<CollectorLocalStorage>()
+                ? getIt<CollectorLocalStorage>()
+                : CollectorLocalStorage());
 
   Future<UserProfileModel> fetchUserProfile() async {
     try {
-      final collector = await _collectorLocalStorage.getCollector();
-      final sp = await SharedPreferences.getInstance();
-      final savedUser = collector?['name']?.toString() ??
-          collector?['username']?.toString() ??
-          sp.getString('saved_username') ??
-          sp.getString(sp_keys.keyUserName) ??
-          'shyam';
+      final collector = await _collectorLocalStorage.getCollector() ?? <String, dynamic>{};
+      final collectorId = await _collectorLocalStorage.getCollectorId();
 
-      final phone = collector?['phone']?.toString() ?? '+91 82815 35237';
-      final vehicleName =
-          collector?['vehicle_name']?.toString() ?? 'Toyota HiAce';
-      final regNo =
-          collector?['vehicle_number']?.toString() ?? 'KL-01-AB-1200';
+      String name = collector['name']?.toString() ??
+          collector['username']?.toString() ??
+          '';
+      String phone = collector['phone']?.toString() ?? '';
+      String vehicleName = collector['vehicle_name']?.toString() ?? '';
+      String vehicleNumber = collector['vehicle_number']?.toString() ?? '';
+      String aadhaarPhoto = collector['aadhaar_card_photo']?.toString() ??
+          collector['photo']?.toString() ??
+          '';
+
+      // 1. Fetch collector profile details from API
+      try {
+        final profileRes = await _apiClient.get(
+          APIEndPoints.collectorDetail(collectorId),
+        );
+        if (profileRes.data is Map) {
+          final data = Map<String, dynamic>.from(profileRes.data as Map);
+          final apiName = data['name']?.toString() ?? data['username']?.toString();
+          if (apiName != null && apiName.trim().isNotEmpty) {
+            name = apiName.trim();
+            collector['name'] = name;
+          }
+          final apiPhone = data['phone']?.toString();
+          if (apiPhone != null && apiPhone.trim().isNotEmpty) {
+            phone = apiPhone.trim();
+            collector['phone'] = phone;
+          }
+          final apiVehicleNumber = data['vehicle_number']?.toString();
+          if (apiVehicleNumber != null && apiVehicleNumber.trim().isNotEmpty) {
+            vehicleNumber = apiVehicleNumber.trim();
+            collector['vehicle_number'] = vehicleNumber;
+          }
+        }
+      } catch (_) {}
+
+      // 2. Fetch assigned vehicle details from API
+      try {
+        final vehicleRes = await _apiClient.get(
+          APIEndPoints.getAssignVehicle,
+          queryParameters: {
+            'collector_id': collectorId,
+            'id': collectorId,
+          },
+        );
+        if (vehicleRes.data is Map) {
+          final data = Map<String, dynamic>.from(vehicleRes.data as Map);
+          if (data['vehicle_name'] != null) {
+            vehicleName = data['vehicle_name'].toString();
+            collector['vehicle_name'] = vehicleName;
+          }
+          if (data['vehicle_number'] != null) {
+            vehicleNumber = data['vehicle_number'].toString();
+            collector['vehicle_number'] = vehicleNumber;
+          }
+          if (data['aadhaar_card_photo'] != null) {
+            aadhaarPhoto = data['aadhaar_card_photo'].toString();
+            collector['aadhaar_card_photo'] = aadhaarPhoto;
+          }
+          final colName = data['collector_name']?.toString();
+          if (colName != null && colName.trim().isNotEmpty && name.isEmpty) {
+            name = colName.trim();
+            collector['name'] = name;
+          }
+        }
+      } catch (_) {}
+
+      // Save updated cache
+      await _collectorLocalStorage.saveCollector(collector);
+
+      final sp = await SharedPreferences.getInstance();
+      if (name.isEmpty) {
+        name = sp.getString('saved_username') ??
+            sp.getString(sp_keys.keyUserName) ??
+            'shyam';
+      }
+      if (phone.isEmpty) {
+        phone = sp.getString(sp_keys.keyUseMobile) ?? '+91 82815 35237';
+      }
+      if (vehicleName.isEmpty) {
+        vehicleName = 'Toyota HiAce';
+      }
+      if (vehicleNumber.isEmpty) {
+        vehicleNumber = 'KL-01-AB-1201';
+      }
 
       return UserProfileModel(
-        name: savedUser.isNotEmpty ? savedUser : 'shyam',
-        phone: phone.isNotEmpty ? phone : '+91 82815 35237',
-        vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Toyota HiAce',
+        collectorId: collectorId,
+        name: name,
+        phone: phone,
+        vehicleName: vehicleName,
         vehicleStatus: 'Assigned',
-        regNo: regNo.isNotEmpty ? regNo : 'KL-01-AB-1200',
+        regNo: vehicleNumber,
         ward: 'Ward 1',
         aadhaarStatus: 'Verified On File',
+        aadhaarPhoto: aadhaarPhoto,
       );
     } catch (_) {
       return const UserProfileModel();
     }
+  }
+
+  Future<Map<String, dynamic>> fetchVehicleAssignment({String? collectorId}) async {
+    final id = collectorId?.trim().isNotEmpty == true
+        ? collectorId!.trim()
+        : await _collectorLocalStorage.getCollectorId();
+
+    final response = await _apiClient.get(
+      APIEndPoints.getAssignVehicle,
+      queryParameters: {
+        'collector_id': id,
+        'id': id,
+      },
+    );
+
+    if (response.data is Map) {
+      final data = Map<String, dynamic>.from(response.data as Map);
+      final collector = await _collectorLocalStorage.getCollector() ?? <String, dynamic>{};
+      if (data['vehicle_name'] != null) {
+        collector['vehicle_name'] = data['vehicle_name'];
+      }
+      if (data['vehicle_number'] != null) {
+        collector['vehicle_number'] = data['vehicle_number'];
+      }
+      if (data['aadhaar_card_photo'] != null) {
+        collector['aadhaar_card_photo'] = data['aadhaar_card_photo'];
+      }
+      await _collectorLocalStorage.saveCollector(collector);
+      return data;
+    }
+    throw Exception('Failed to load vehicle assignment');
+  }
+
+  Future<Map<String, dynamic>> assignVehicle({
+    required String collectorId,
+    required String vehicleName,
+    required String vehicleNumber,
+    String? aadhaarPhoto,
+  }) async {
+    final payload = <String, dynamic>{
+      'vehicle_name': vehicleName,
+      'vehicle_number': vehicleNumber,
+    };
+    if (aadhaarPhoto != null && aadhaarPhoto.trim().isNotEmpty) {
+      payload['aadhaar_card_photo'] = aadhaarPhoto.trim();
+    }
+
+    final response = await _apiClient.post(
+      APIEndPoints.assignVehicle(collectorId),
+      data: payload,
+    );
+
+    if (response.data is Map) {
+      final data = Map<String, dynamic>.from(response.data as Map);
+      final collector = await _collectorLocalStorage.getCollector() ?? <String, dynamic>{};
+      collector['vehicle_name'] = vehicleName;
+      collector['vehicle_number'] = vehicleNumber;
+      if (aadhaarPhoto != null && aadhaarPhoto.trim().isNotEmpty) {
+        collector['aadhaar_card_photo'] = aadhaarPhoto.trim();
+      }
+      await _collectorLocalStorage.saveCollector(collector);
+      return data;
+    }
+    throw Exception('Failed to assign vehicle');
   }
 
   Future<void> logout() async {

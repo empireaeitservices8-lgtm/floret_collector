@@ -46,3 +46,11 @@ class LoginRepositoryImpl implements LoginRepository {
     return tokenStorage.deleteToken();
   }
 }
+  // Future<void> logout() async {
+  //   final sp = await SharedPreferences.getInstance();
+  //   await sp.remove(sp_keys.keyToken);
+  //   await sp.remove('saved_username');
+  //   await sp.remove(sp_keys.keyUserName);
+  //   await _collectorLocalStorage.clearCollector();
+  //   await _webAPIService.initTokenToHeader();
+  // }
