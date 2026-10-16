@@ -24,15 +24,34 @@ class APIEndPoints {
 
   //collectors & vehicle assignment
   static String collectorDetail(dynamic id) => '/api/collectors/$id/';
-  static String assignVehicle(dynamic id) => '/api/collectors/$id/assign-vehicle/';
+  static String assignVehicle(dynamic id) =>
+      '/api/collectors/$id/assign-vehicle/';
   static const String getAssignVehicle = '/api/assign-vehicle/';
 
   //issues
   static const String issues = '/api/issues/';
+  static const String reportIssue = '/api/report-issue/';
 
   //direct disposal
   static const String directDisposal = '/api/direct-disposal/';
 
   //help & support
   static const String helpSupport = '/api/help-support/';
+
+  //collection route & payment
+  static const String wardCollectionRoutes = '/api/ward-collection-routes/';
+  static const String startTrackingRoute = '/api/start-tracking/';
+  static const String confirmRouteStart = '/api/confirm-route-start/';
+  static const String startNavigate = '/api/start-navigate/';
+  static const String updateCollectorLocation = '/api/update-collector-location/';
+  static const String confirmReached = '/api/confirm-reached/';
+  static const String confirmAndPayData = '/api/confirm-and-pay-data/';
+  static const String disposalRates = '/api/disposal-rates/';
+  static const String generateBill = '/api/generate-bill/';
+  static const String processPayment = '/api/process-payment/';
+  static const String confirmAndPay = '/api/confirm-and-pay/';
+  static const String updatePickupStatus = '/api/update-pickup-status/';
+  static const String collectPickup = '/api/collect-pickup/';
+  static const String uploadWastePhoto = '/api/upload-waste-photo/';
+  static const String razorpayGenerateQr = '/api/razorpay/generate-qr/';
 }

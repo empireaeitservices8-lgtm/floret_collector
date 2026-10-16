@@ -3,6 +3,7 @@ import 'package:floret_collector/features/home/model/bag_model.dart';
 import 'package:floret_collector/features/home/model/location_pickup_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:floret_collector/core/storage/collector_details.dart';
+import 'package:floret_collector/core/storage/collection_metrics_storage.dart';
 import 'package:floret_collector/features/home/model/pickup_slot_model.dart';
 
 import '../repos/home_repository.dart';
@@ -10,12 +11,22 @@ import '../repos/home_repository.dart';
 class HomeViewModel extends ChangeNotifier {
   final HomeRepository _repository;
   final CollectorLocalStorage _collectorLocalStorage;
+  final CollectionMetricsStorage _metricsStorage;
 
   HomeViewModel({
     required HomeRepository repository,
     required CollectorLocalStorage collectorLocalStorage,
+    CollectionMetricsStorage? metricsStorage,
   })  : _repository = repository,
-        _collectorLocalStorage = collectorLocalStorage;
+        _collectorLocalStorage = collectorLocalStorage,
+        _metricsStorage = metricsStorage ?? CollectionMetricsStorage() {
+    _metricsStorage.addListener(_onMetricsChanged);
+    _metricsStorage.loadTodayMetrics();
+  }
+
+  void _onMetricsChanged() {
+    notifyListeners();
+  }
 
   // Variables
   bool _isLoading = false;
@@ -36,6 +47,12 @@ class HomeViewModel extends ChangeNotifier {
   BagAssignmentModel? get bagAssignment => _bagAssignment;
   List<LocationPickupModel> get locations => List.unmodifiable(_locations);
 
+  // Daily collection metrics
+  double get todayWeight => _metricsStorage.todayWeight;
+  double get todayAmount => _metricsStorage.todayAmount;
+  String get formattedWeight => _metricsStorage.formattedWeight;
+  String get formattedCollectedAmount => _metricsStorage.formattedAmount;
+
   // Load collector details from SharedPrefs
   Future<void> loadCollector() async {
     final collector = await _collectorLocalStorage.getCollector();
@@ -48,10 +65,12 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   // Load pickup slots from API
-  Future<void> loadPickupSlots() async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+  Future<void> loadPickupSlots({bool showLoading = true}) async {
+    if (showLoading) {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
 
     try {
       final response = await _repository.getPickupSlots();
@@ -60,9 +79,22 @@ class HomeViewModel extends ChangeNotifier {
     } catch (e) {
       _errorMessage = 'Unable to load pickup slots';
     } finally {
-      _isLoading = false;
+      if (showLoading) {
+        _isLoading = false;
+      }
       notifyListeners();
     }
+  }
+
+  // Refresh all home data
+  Future<void> refresh() async {
+    await Future.wait([
+      loadCollector().then((_) => loadBagAssignment()),
+      loadLocations(),
+      loadBags(),
+      loadPickupSlots(showLoading: false),
+      _metricsStorage.loadTodayMetrics(),
+    ]);
   }
 
   // Load bag assignment (remaining covers, local body info)
@@ -101,48 +133,53 @@ class HomeViewModel extends ChangeNotifier {
     }).toList();
   }
 
-  // Status priority: pending/in-progress first, picked/collected/arrived last
+  // Status priority: arrived first (ready to collect!), in-progress/pending next, completed/picked last
   int _statusOrder(String status) {
     switch (status.toLowerCase()) {
-      case 'pending':
+      case 'arrived':
         return 0;
       case 'in_progress':
       case 'in progress':
         return 1;
-      case 'arrived':
+      case 'pending':
         return 2;
       case 'picked':
       case 'collected':
       case 'completed':
         return 3;
       default:
-        return 1;
+        return 2;
     }
   }
 
-  // Today's pickups from locations API — picked/collected shown last
+  // Today's pickups from locations API — arrived first, completed last
   List<LocationPickupModel> get todayLocations {
     final list = _locations.where((loc) => loc.isToday).toList();
     list.sort((a, b) => _statusOrder(a.status).compareTo(_statusOrder(b.status)));
     return list;
   }
 
-  // Pending pickups for today (not yet picked/collected)
+  // Pending pickups for today (includes arrived pickups awaiting collection)
   List<LocationPickupModel> get todayPendingLocations {
     return todayLocations
         .where((loc) {
           final s = loc.status.toLowerCase();
-          return s == 'pending' || s == 'in_progress' || s == 'in progress';
+          return s == 'arrived' ||
+              s == 'pending' ||
+              s == 'in_progress' ||
+              s == 'in progress';
         })
         .toList();
   }
 
-  // First strictly-pending pickup for "Next collection route".
-  // Returns null when all today's pickups are picked/collected.
+  // First pickup to act on: arrived pickups are top priority, then pending
   LocationPickupModel? get nextPickup {
     if (todayPendingLocations.isNotEmpty) return todayPendingLocations.first;
     return null;
   }
+
+  bool get hasArrivedPickup =>
+      todayPendingLocations.any((l) => l.status.toLowerCase() == 'arrived');
 
   String get todayArea {
     if (todaySlots.isEmpty) return 'N/A';
@@ -171,15 +208,12 @@ class HomeViewModel extends ChangeNotifier {
   int get remainingBags => _bagAssignment?.remainingBags ?? 0;
   int get assignedBags => _bagAssignment?.assignedBags ?? 0;
 
-  // Sanitary pickups count for today — picked/arrived/collected all count as done
+  // Sanitary pickups count for today — only picked/collected/completed count as done (arrived is still to be collected)
   int get todaySanitaryTotal => todayLocations.length;
   int get todaySanitaryCompleted => todayLocations
       .where((l) {
         final s = l.status.toLowerCase();
-        return s == 'picked' ||
-            s == 'collected' ||
-            s == 'completed' ||
-            s == 'arrived';
+        return s == 'picked' || s == 'collected' || s == 'completed';
       })
       .length;
 
@@ -194,5 +228,11 @@ class HomeViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint('Unable to load bags: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    _metricsStorage.removeListener(_onMetricsChanged);
+    super.dispose();
   }
 }

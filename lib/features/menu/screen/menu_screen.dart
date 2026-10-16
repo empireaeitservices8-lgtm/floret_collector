@@ -6,6 +6,7 @@ import '../../collection_history/screen/collection_history_screen.dart';
 import '../../issues_management/screen/issues_management_screen.dart';
 import '../../direct_disposal/screen/direct_disposal_screen.dart';
 import '../../help_support/screen/help_support_screen.dart';
+import '../../collection_route/screen/available_coupons_vouchers_screen.dart';
 import 'vehicle_assignment_bottom_sheet.dart';
 
 class MenuScreen extends StatelessWidget {
@@ -500,6 +501,21 @@ class MenuScreen extends StatelessWidget {
                           Navigator.pushNamed(
                             context,
                             DirectDisposalScreen.routeName,
+                          );
+                        },
+                      ),
+
+                      _buildMenuItem(
+                        iconBg: const Color(0xFFFEF3C7),
+                        iconColor: const Color(0xFFD97706),
+                        icon: Icons.confirmation_num_outlined,
+                        title: 'Coins & Vouchers',
+                        subtitle:
+                            'Explore available discount vouchers and reward coins',
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            AvailableCouponsVouchersScreen.routeName,
                           );
                         },
                       ),

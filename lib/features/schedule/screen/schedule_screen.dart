@@ -4,6 +4,7 @@ import 'package:floret_collector/features/home/model/location_pickup_model.dart'
 import '../viewmodel/schedule_view_model.dart';
 import 'schedule_filter_bottom_sheet.dart';
 import '../../main/viewmodel/main_view_model.dart';
+import '../../collection_route/screen/collection_route_screen.dart';
 
 class ScheduleScreen extends StatelessWidget {
   static const String routeName = '/ScheduleScreen';
@@ -138,7 +139,7 @@ class ScheduleScreen extends StatelessWidget {
                         )
                       else
                         ...vm.filteredPickups.map(
-                          (pickup) => _buildPickupCard(pickup),
+                          (pickup) => _buildPickupCard(context, pickup, vm),
                         ),
 
                       const SizedBox(height: 40),
@@ -332,7 +333,12 @@ class ScheduleScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPickupCard(LocationPickupModel pickup) {
+  Widget _buildPickupCard(
+    BuildContext context,
+    LocationPickupModel pickup,
+    ScheduleViewModel vm,
+  ) {
+    final isArrived = pickup.status.toLowerCase() == 'arrived';
     final statusColor = _statusColor(pickup.status);
     final statusBg = _statusBgColor(pickup.status);
 
@@ -343,7 +349,12 @@ class ScheduleScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(
+          color: isArrived
+              ? const Color(0xFF10B981)
+              : const Color(0xFFE2E8F0),
+          width: isArrived ? 1.5 : 1.0,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,7 +391,13 @@ class ScheduleScreen extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.flag_rounded, size: 12, color: statusColor),
+                    Icon(
+                      isArrived
+                          ? Icons.check_circle_rounded
+                          : Icons.flag_rounded,
+                      size: 12,
+                      color: statusColor,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       _capitalize(pickup.status),
@@ -419,6 +436,49 @@ class ScheduleScreen extends StatelessWidget {
               ),
             ),
           ),
+          if (isArrived) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  final routeName =
+                      pickup.street.isNotEmpty ? pickup.street : pickup.city;
+                  Navigator.pushNamed(
+                    context,
+                    CollectionRouteScreen.routeName,
+                    arguments: {
+                      'routeName': routeName,
+                      'address': routeName,
+                      'time': pickup.pickupTimeSlot,
+                      'type': pickup.wasteType,
+                      'pickupId': pickup.pickupId,
+                      'hasArrived': true,
+                      'status': 'arrived',
+                    },
+                  ).then((_) => vm.refresh());
+                },
+                icon: const Icon(Icons.check_circle_outline_rounded,
+                    size: 18, color: Colors.white),
+                label: const Text(
+                  'Make collection',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -433,7 +493,7 @@ class ScheduleScreen extends StatelessWidget {
       case 'completed':
         return const Color(0xFF16A34A);
       case 'arrived':
-        return const Color(0xFF2563EB);
+        return const Color(0xFF059669);
       case 'rejected':
       case 'cancelled':
         return const Color(0xFFDC2626);
@@ -451,7 +511,7 @@ class ScheduleScreen extends StatelessWidget {
       case 'completed':
         return const Color(0xFFDCFCE7);
       case 'arrived':
-        return const Color(0xFFDBEAFE);
+        return const Color(0xFFD1FAE5);
       case 'rejected':
       case 'cancelled':
         return const Color(0xFFFEE2E2);

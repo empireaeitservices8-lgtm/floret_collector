@@ -47,12 +47,12 @@ class ScheduleViewModel extends ViewModel {
 
   int _statusOrder(String status) {
     switch (status.toLowerCase()) {
-      case 'pending':
+      case 'arrived':
         return 0;
+      case 'pending':
+        return 1;
       case 'in_progress':
       case 'in progress':
-        return 1;
-      case 'arrived':
         return 2;
       case 'picked':
       case 'collected':
@@ -67,9 +67,10 @@ class ScheduleViewModel extends ViewModel {
     final s = status.toLowerCase();
     return s == 'picked' ||
         s == 'collected' ||
-        s == 'completed' ||
-        s == 'arrived';
+        s == 'completed';
   }
+
+  Future<void> refresh() => loadSchedule();
 
   /// Filtered list of pickups according to filter bottom sheet
   List<LocationPickupModel> get filteredPickups {

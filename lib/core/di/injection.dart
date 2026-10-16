@@ -1,4 +1,5 @@
 import 'package:floret_collector/core/storage/collector_details.dart';
+import 'package:floret_collector/core/storage/collection_metrics_storage.dart';
 import 'package:floret_collector/features/billing_history/repos/billing_history_repository.dart';
 import 'package:floret_collector/features/billing_history/viewmodel/billing_history_view_model.dart';
 import 'package:floret_collector/features/collection_history/repos/collection_history_repository.dart';
@@ -31,6 +32,9 @@ Future<void> initializeDependencies() async {
   //shared
   getIt.registerLazySingleton<CollectorLocalStorage>(
     () => CollectorLocalStorage(),
+  );
+  getIt.registerLazySingleton<CollectionMetricsStorage>(
+    () => CollectionMetricsStorage(),
   );
   // Secure storage
   getIt.registerLazySingleton<FlutterSecureStorage>(
@@ -108,8 +112,10 @@ Future<void> initializeDependencies() async {
 
   getIt.registerFactory<HomeViewModel>(
     () => HomeViewModel(
-        repository: getIt<HomeRepository>(),
-        collectorLocalStorage: getIt<CollectorLocalStorage>()),
+      repository: getIt<HomeRepository>(),
+      collectorLocalStorage: getIt<CollectorLocalStorage>(),
+      metricsStorage: getIt<CollectionMetricsStorage>(),
+    ),
   );
 
   getIt.registerFactory<BillingHistoryViewModel>(
