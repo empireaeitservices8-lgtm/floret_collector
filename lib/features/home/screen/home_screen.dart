@@ -47,156 +47,161 @@ class HomeScreen extends StatelessWidget {
               }
 
               return RefreshIndicator(
-                onRefresh: () => vm.refresh(),
+                onRefresh: () => vm.loadPickupSlots(),
                 color: const Color(0xFF1E293B),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
 
-                    // ── Location Header ──
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.apartment_rounded,
-                          size: 18,
-                          color: Color(0xFF1E293B),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          vm.todayDistrict,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                      // ── Location Header ──
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 18,
                             color: Color(0xFF1E293B),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-
-                    // ── Greeting ──
-                    Text(
-                      'Hi, ${vm.collectorName.isEmpty ? 'Collector' : vm.collectorName}!',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1E293B),
-                        letterSpacing: -0.5,
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              vm.homeLocation.isNotEmpty && vm.homeLocation != 'N/A'
+                                  ? vm.homeLocation
+                                  : vm.todayDistrict,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1E293B),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 18),
+                      const SizedBox(height: 6),
 
-                    // ── KPI Cards ──
-                    Row(
-                      children: [
-                        // Remaining Covers
-                        Expanded(
-                          child: buildMetricCard(
-                            iconBg: const Color(0xFFFEF3C7),
-                            iconColor: const Color(0xFFD97706),
-                            icon: Icons.shopping_bag_rounded,
-                            value: '${vm.remainingBags}/${vm.assignedBags}',
-                            label: 'Remaining Covers',
-                          ),
+                      // ── Greeting ──
+                      Text(
+                        'Hi, ${vm.collectorName.isEmpty ? 'Collector' : vm.collectorName}!',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E293B),
+                          letterSpacing: -0.5,
                         ),
-                        const SizedBox(width: 10),
-                        // Weight
-                        Expanded(
-                          child: buildMetricCard(
-                            iconBg: const Color(0xFFDCFCE7),
-                            iconColor: const Color(0xFF16A34A),
-                            icon: Icons.scale_rounded,
-                            value: vm.formattedWeight,
-                            label: 'Weight',
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        // Collected
-                        Expanded(
-                          child: buildMetricCard(
-                            iconBg: const Color(0xFFDBEAFE),
-                            iconColor: const Color(0xFF2563EB),
-                            icon: Icons.payments_rounded,
-                            value: vm.formattedCollectedAmount,
-                            label: 'Collected',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
+                      ),
+                      const SizedBox(height: 18),
 
-                    // ── Next Collection Route ──
-                    _buildNextRouteCard(context, vm),
-                    const SizedBox(height: 24),
-
-                    // ── Today's Collection Schedule ──
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "Today's collection schedule",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF1E293B),
-                            letterSpacing: -0.3,
+                      // ── KPI Cards ──
+                      Row(
+                        children: [
+                          // Remaining Covers
+                          Expanded(
+                            child: buildMetricCard(
+                              iconBg: const Color(0xFFFEF3C7),
+                              iconColor: const Color(0xFFD97706),
+                              icon: Icons.shopping_bag_rounded,
+                              value: '${vm.remainingBags}/${vm.assignedBags}',
+                              label: 'Remaining Covers',
+                            ),
                           ),
-                        ),
-                        InkWell(
-                          onTap: () => _navigateToSchedule(context),
-                          borderRadius: BorderRadius.circular(18),
-                          child: Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFFDBEAFE),
+                          const SizedBox(width: 10),
+                          // Weight
+                          Expanded(
+                            child: buildMetricCard(
+                              iconBg: const Color(0xFFDCFCE7),
+                              iconColor: const Color(0xFF16A34A),
+                              icon: Icons.scale_rounded,
+                              value: vm.formattedWeight,
+                              label: 'Weight',
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          // Collected
+                          Expanded(
+                            child: buildMetricCard(
+                              iconBg: const Color(0xFFDBEAFE),
+                              iconColor: const Color(0xFF2563EB),
+                              icon: Icons.payments_rounded,
+                              value: vm.formattedCollectedAmount,
+                              label: 'Collected',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ── Next Collection Route ──
+                      _buildNextRouteCard(context, vm),
+                      const SizedBox(height: 24),
+
+                      // ── Today's Collection Schedule ──
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Today's collection schedule",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1E293B),
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () => _navigateToSchedule(context),
+                            borderRadius: BorderRadius.circular(18),
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFFDBEAFE),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 17,
+                                color: Color(0xFF2563EB),
                               ),
                             ),
-                            child: const Icon(
-                              Icons.arrow_forward_rounded,
-                              size: 17,
-                              color: Color(0xFF2563EB),
-                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Schedule items from locations API
-                    if (vm.todayLocations.isEmpty)
-                      _buildEmptySchedule()
-                    else
-                      ...vm.todayLocations
-                          .map((loc) => _buildScheduleCard(context, loc, vm)),
-
-                    const SizedBox(height: 24),
-
-                    // ── Today's Collection Overview ──
-                    const Text(
-                      "Today's collection overview",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1E293B),
-                        letterSpacing: -0.3,
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    _buildCollectionOverview(vm),
-                    const SizedBox(height: 28),
-                  ],
+                      const SizedBox(height: 14),
+
+                      // Schedule items from locations API
+                      if (vm.todayLocations.isEmpty)
+                        _buildEmptySchedule()
+                      else
+                        ...vm.todayLocations
+                            .map((loc) => _buildScheduleCard(context, loc, vm)),
+
+                      const SizedBox(height: 24),
+
+                      // ── Today's Collection Overview ──
+                      const Text(
+                        "Today's collection overview",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E293B),
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _buildCollectionOverview(vm),
+                      const SizedBox(height: 28),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
           ),
         ),
       ),
@@ -504,9 +509,7 @@ class HomeScreen extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isArrived
-              ? const Color(0xFF10B981)
-              : const Color(0xFFE2E8F0),
+          color: isArrived ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
           width: isArrived ? 1.5 : 1.0,
         ),
       ),
@@ -659,9 +662,9 @@ class HomeScreen extends StatelessWidget {
     final progress = totalToday > 0 ? completed / totalToday : 0.0;
 
     // Build ward area label
-    final areaLabel = vm.todayLocations.isNotEmpty
+    final areaLabel = vm.todayLocations.isNotEmpty && vm.todayLocations.first.ward.isNotEmpty
         ? vm.todayLocations.first.ward
-        : vm.localBodyName;
+        : (vm.todayWard.isNotEmpty ? vm.todayWard : vm.localBodyName);
 
     return Container(
       width: double.infinity,

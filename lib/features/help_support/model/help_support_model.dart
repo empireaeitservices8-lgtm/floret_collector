@@ -11,9 +11,9 @@ class HelpSupportContactModel {
 
   factory HelpSupportContactModel.fromJson(Map<String, dynamic> json) {
     return HelpSupportContactModel(
-      email: json['email']?.toString() ?? 'floretbilling@gmail.com',
-      phone: json['phone']?.toString() ?? '94460 02666',
-      phoneFormatted: json['phone_formatted']?.toString() ?? '+91 94460 02666',
+      email: json['email']?.toString() ?? 'florettechnologies@gmail.com',
+      phone: json['phone']?.toString() ?? '9292023601',
+      phoneFormatted: json['phone_formatted']?.toString() ?? '+91 92920 23601',
     );
   }
 
@@ -67,9 +67,9 @@ class HelpSupportModel {
           ? HelpSupportContactModel.fromJson(
               Map<String, dynamic>.from(json['contact'] as Map))
           : const HelpSupportContactModel(
-              email: 'floretbilling@gmail.com',
-              phone: '94460 02666',
-              phoneFormatted: '+91 94460 02666',
+              email: 'florettechnologies@gmail.com',
+              phone: '9292023601',
+              phoneFormatted: '+91 92920 23601',
             ),
       supportHours: json['support_hours'] is Map
           ? SupportHoursModel.fromJson(

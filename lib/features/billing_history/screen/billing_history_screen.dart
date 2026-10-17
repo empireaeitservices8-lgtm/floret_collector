@@ -427,191 +427,411 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
     final isCash = bill.method.toLowerCase() == 'cash';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(18),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Row: Bill ID and Status Badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Bill #${bill.id}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1E293B),
-                  letterSpacing: -0.3,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: () => _showReceiptDetailsBottomSheet(context, bill),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Row: Bill ID and Status Badge
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Bill #${bill.id}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1E293B),
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isPaid
+                            ? const Color(0xFFECFDF5)
+                            : const Color(0xFFFFFBEB),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        bill.status.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color: isPaid
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFFD97706),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: isPaid
-                      ? const Color(0xFFECFDF5)
-                      : const Color(0xFFFFFBEB),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  bill.status.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
-                    color: isPaid
-                        ? const Color(0xFF10B981)
-                        : const Color(0xFFD97706),
-                    letterSpacing: 0.5,
+
+                const SizedBox(height: 6),
+
+                // Stop ID Row
+                Text(
+                  'Stop ID: #${bill.stopId} • ${bill.stopName}',
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF64748B),
                   ),
                 ),
-              ),
-            ],
-          ),
 
-          const SizedBox(height: 6),
+                const SizedBox(height: 16),
 
-          // Stop ID Row
-          Text(
-            'Stop ID: #${bill.stopId} • ${bill.stopName}',
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF64748B),
+                // Metrics 3 Columns Row: Weight, Rate, Amount
+                Row(
+                  children: [
+                    // Column 1: Weight
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Weight',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF8C95A6),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            bill.formattedWeight,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Column 2: Rate
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Rate',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF8C95A6),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            bill.formattedRate,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Column 3: Amount
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Amount',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF8C95A6),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '₹${bill.formattedAmount}',
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 18),
+
+                // Bottom Row: Payment Method and Date
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    InkWell(
+                      onTap: () => _showReceiptDetailsBottomSheet(context, bill),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isCash
+                                ? Icons.payments_outlined
+                                : Icons.qr_code_scanner_rounded,
+                            size: 16,
+                            color: const Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            bill.method.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF64748B),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      bill.date,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF8C95A6),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-
-          const SizedBox(height: 16),
-
-          // Metrics 3 Columns Row: Weight, Rate, Amount
-          Row(
-            children: [
-              // Column 1: Weight
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Weight',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF8C95A6),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${bill.weight} Kgs',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Column 2: Rate
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Rate',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF8C95A6),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '₹${bill.rate}/kg',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Column 3: Amount
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Amount',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF8C95A6),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '₹${bill.amount}',
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 18),
-
-          // Bottom Row: Payment Method and Date
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    isCash
-                        ? Icons.payments_outlined
-                        : Icons.qr_code_scanner_rounded,
-                    size: 16,
-                    color: const Color(0xFF64748B),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    bill.method.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF64748B),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                bill.date,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF8C95A6),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
+    );
+  }
+
+  void _showReceiptDetailsBottomSheet(BuildContext context, BillItemModel bill) {
+    final isPaid = bill.status.toLowerCase() == 'paid';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.9,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header Row: Receipt Details and Close Button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 20, 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Receipt Details',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1E293B),
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.pop(ctx),
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 24,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Scrollable Details Body
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Total Paid Card
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(top: 8, bottom: 20),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 22,
+                          horizontal: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9).withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'TOTAL PAID',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF64748B),
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '₹${bill.formattedAmount}',
+                              style: const TextStyle(
+                                fontSize: 34,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF1E293B),
+                                letterSpacing: -0.6,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Key-Value Detail Rows
+                      _buildReceiptDetailRow('Bill ID', '#${bill.id}'),
+                      const SizedBox(height: 14),
+                      _buildReceiptDetailRow('Stop ID', '#${bill.stopId}'),
+                      const SizedBox(height: 14),
+                      _buildReceiptDetailRow('Waste Weight', bill.formattedWeight),
+                      const SizedBox(height: 14),
+                      _buildReceiptDetailRow('Disposal Rate', bill.formattedRate),
+                      const SizedBox(height: 14),
+                      _buildReceiptDetailRow('Payment Mode', bill.method.toUpperCase()),
+                      const SizedBox(height: 14),
+                      _buildReceiptDetailRow('Gateway', bill.effectiveGateway),
+                      const SizedBox(height: 14),
+                      _buildReceiptDetailRow(
+                        'Transaction ID',
+                        bill.effectiveTransactionId,
+                      ),
+                      const SizedBox(height: 14),
+                      _buildReceiptDetailRow(
+                        'Payment Status',
+                        bill.status.toUpperCase(),
+                        valueColor: isPaid
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFD97706),
+                      ),
+                      const SizedBox(height: 14),
+                      _buildReceiptDetailRow('Date & Time', bill.date),
+                      const SizedBox(height: 14),
+                      _buildReceiptDetailRow(
+                        'Remarks',
+                        (bill.remarks != null && bill.remarks!.trim().isNotEmpty)
+                            ? bill.remarks!.trim()
+                            : 'Gross: ₹${bill.formattedAmount} | Voucher (FLT-250): -₹0.00',
+                      ),
+
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Bottom Dismiss Button
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  8,
+                  24,
+                  MediaQuery.of(ctx).padding.bottom + 16,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E293B),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Dismiss',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildReceiptDetailRow(
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF64748B),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w800,
+              color: valueColor ?? const Color(0xFF1E293B),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

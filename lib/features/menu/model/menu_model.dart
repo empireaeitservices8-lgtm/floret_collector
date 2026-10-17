@@ -6,6 +6,8 @@ class UserProfileModel {
   final String vehicleStatus;
   final String regNo;
   final String ward;
+  final String localBody;
+  final String district;
   final String aadhaarStatus;
   final String aadhaarPhoto;
 
@@ -16,7 +18,9 @@ class UserProfileModel {
     this.vehicleName = 'Toyota HiAce',
     this.vehicleStatus = 'Assigned',
     this.regNo = 'KL-01-AB-1201',
-    this.ward = 'Ward 1',
+    this.ward = '39 - CHIRAKANI',
+    this.localBody = '',
+    this.district = '',
     this.aadhaarStatus = 'Verified On File',
     this.aadhaarPhoto = '',
   });
@@ -29,6 +33,8 @@ class UserProfileModel {
     String? vehicleStatus,
     String? regNo,
     String? ward,
+    String? localBody,
+    String? district,
     String? aadhaarStatus,
     String? aadhaarPhoto,
   }) {
@@ -40,6 +46,8 @@ class UserProfileModel {
       vehicleStatus: vehicleStatus ?? this.vehicleStatus,
       regNo: regNo ?? this.regNo,
       ward: ward ?? this.ward,
+      localBody: localBody ?? this.localBody,
+      district: district ?? this.district,
       aadhaarStatus: aadhaarStatus ?? this.aadhaarStatus,
       aadhaarPhoto: aadhaarPhoto ?? this.aadhaarPhoto,
     );

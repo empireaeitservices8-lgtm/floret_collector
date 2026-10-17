@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../viewmodel/menu_view_model.dart';
 import '../../billing_history/screen/billing_history_screen.dart';
 import '../../collection_history/screen/collection_history_screen.dart';
 import '../../issues_management/screen/issues_management_screen.dart';
 import '../../direct_disposal/screen/direct_disposal_screen.dart';
 import '../../help_support/screen/help_support_screen.dart';
-import '../../collection_route/screen/available_coupons_vouchers_screen.dart';
-import 'vehicle_assignment_bottom_sheet.dart';
 
 class MenuScreen extends StatelessWidget {
   static const String routeName = '/MenuScreen';
@@ -132,47 +131,47 @@ class MenuScreen extends StatelessWidget {
                                     letterSpacing: 0.6,
                                   ),
                                 ),
-                                InkWell(
-                                  onTap: () {
-                                    VehicleAssignmentBottomSheet.show(
-                                      context: context,
-                                      viewModel: vm,
-                                    );
-                                  },
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEFF6FF),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: const Color(0xFFDBEAFE),
-                                      ),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.edit_note_rounded,
-                                          size: 16,
-                                          color: Color(0xFF2563EB),
-                                        ),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          'Assign (Admin)',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: Color(0xFF2563EB),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                // InkWell(
+                                //   onTap: () {
+                                //     VehicleAssignmentBottomSheet.show(
+                                //       context: context,
+                                //       viewModel: vm,
+                                //     );
+                                //   },
+                                //   borderRadius: BorderRadius.circular(8),
+                                //   child: Container(
+                                //     padding: const EdgeInsets.symmetric(
+                                //       horizontal: 10,
+                                //       vertical: 4,
+                                //     ),
+                                //     decoration: BoxDecoration(
+                                //       color: const Color(0xFFEFF6FF),
+                                //       borderRadius: BorderRadius.circular(8),
+                                //       border: Border.all(
+                                //         color: const Color(0xFFDBEAFE),
+                                //       ),
+                                //     ),
+                                //     child: const Row(
+                                //       mainAxisSize: MainAxisSize.min,
+                                //       children: [
+                                //         Icon(
+                                //           Icons.edit_note_rounded,
+                                //           size: 16,
+                                //           color: Color(0xFF2563EB),
+                                //         ),
+                                //         SizedBox(width: 4),
+                                //         Text(
+                                //           'Assign (Admin)',
+                                //           style: TextStyle(
+                                //             fontSize: 12,
+                                //             fontWeight: FontWeight.w700,
+                                //             color: Color(0xFF2563EB),
+                                //           ),
+                                //         ),
+                                //       ],
+                                //     ),
+                                //   ),
+                                // ),
                               ],
                             ),
 
@@ -264,17 +263,20 @@ class MenuScreen extends StatelessWidget {
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
                                     onPressed: () async {
-                                      final res = await vm.fetchVehicleAssignment();
+                                      final res =
+                                          await vm.fetchVehicleAssignment();
                                       if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
                                           SnackBar(
                                             content: Text(
                                               res != null
-                                                  ? 'Vehicle assignment updated'
+                                                  ? 'Refreshed assigned vehicle  details!'
                                                   : 'Failed to update vehicle details',
-                                              style: const TextStyle(color: Colors.white),
+                                              style: const TextStyle(
+                                                  color: Colors.white),
                                             ),
-                                            backgroundColor: Colors.black,
+                                            backgroundColor: Colors.blue,
                                             behavior: SnackBarBehavior.floating,
                                           ),
                                         );
@@ -320,27 +322,36 @@ class MenuScreen extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      profile.ward,
-                                      style: const TextStyle(
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF1E293B),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        profile.ward.isNotEmpty
+                                            ? profile.ward
+                                            : 'Unknown',
+                                        style: const TextStyle(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF1E293B),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    const Text(
-                                      'Select Location',
-                                      style: TextStyle(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w500,
-                                        color: Color(0xFF64748B),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        profile.localBody.isNotEmpty
+                                            ? profile.localBody
+                                            : (profile.district.isNotEmpty
+                                                ? profile.district
+                                                : 'Operational Area'),
+                                        style: const TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w500,
+                                          color: Color(0xFF64748B),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -367,7 +378,8 @@ class MenuScreen extends StatelessWidget {
                             InkWell(
                               onTap: () => _showAadhaarCardDialog(
                                 context,
-                                profile.aadhaarStatus,
+                                aadhaarPhoto: profile.aadhaarPhoto,
+                                aadhaarStatus: profile.aadhaarStatus,
                               ),
                               borderRadius: BorderRadius.circular(14),
                               child: Container(
@@ -381,17 +393,45 @@ class MenuScreen extends StatelessWidget {
                                 ),
                                 child: Row(
                                   children: [
-                                    Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF1F5F9),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: const Icon(
-                                        Icons.credit_card_rounded,
-                                        size: 20,
-                                        color: Color(0xFF64748B),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFEFF6FF),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: profile.aadhaarPhoto.isNotEmpty
+                                            ? CachedNetworkImage(
+                                                imageUrl: profile.aadhaarPhoto,
+                                                fit: BoxFit.cover,
+                                                placeholder: (context, url) =>
+                                                    const Center(
+                                                  child: SizedBox(
+                                                    width: 18,
+                                                    height: 18,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: Color(0xFF2563EB),
+                                                    ),
+                                                  ),
+                                                ),
+                                                errorWidget:
+                                                    (context, url, error) =>
+                                                        const Icon(
+                                                  Icons.credit_card_rounded,
+                                                  size: 20,
+                                                  color: Color(0xFF2563EB),
+                                                ),
+                                              )
+                                            : const Icon(
+                                                Icons.credit_card_rounded,
+                                                size: 20,
+                                                color: Color(0xFF64748B),
+                                              ),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -401,7 +441,9 @@ class MenuScreen extends StatelessWidget {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Aadhaar No: ${profile.aadhaarStatus}',
+                                            profile.aadhaarPhoto.isNotEmpty
+                                                ? 'Aadhaar Card: Verified on File'
+                                                : 'Aadhaar No: ${profile.aadhaarStatus}',
                                             style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
@@ -409,12 +451,17 @@ class MenuScreen extends StatelessWidget {
                                             ),
                                           ),
                                           const SizedBox(height: 2),
-                                          const Text(
-                                            'Tap to view physical card',
+                                          Text(
+                                            profile.aadhaarPhoto.isNotEmpty
+                                                ? 'Tap to view physical document'
+                                                : 'Tap to view physical card',
                                             style: TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w600,
-                                              color: Color(0xFF2563EB),
+                                              color: profile
+                                                      .aadhaarPhoto.isNotEmpty
+                                                  ? const Color(0xFF2563EB)
+                                                  : const Color(0xFF2563EB),
                                             ),
                                           ),
                                         ],
@@ -423,7 +470,8 @@ class MenuScreen extends StatelessWidget {
                                     IconButton(
                                       onPressed: () => _showAadhaarCardDialog(
                                         context,
-                                        profile.aadhaarStatus,
+                                        aadhaarPhoto: profile.aadhaarPhoto,
+                                        aadhaarStatus: profile.aadhaarStatus,
                                       ),
                                       icon: const Icon(
                                         Icons.visibility_outlined,
@@ -480,8 +528,7 @@ class MenuScreen extends StatelessWidget {
                         iconColor: const Color(0xFFD97706),
                         icon: Icons.warning_amber_rounded,
                         title: 'Issues Management',
-                        subtitle:
-                            'View and resolve reported collection issues',
+                        subtitle: 'View and resolve reported collection issues',
                         onTap: () {
                           Navigator.pushNamed(
                             context,
@@ -505,20 +552,20 @@ class MenuScreen extends StatelessWidget {
                         },
                       ),
 
-                      _buildMenuItem(
-                        iconBg: const Color(0xFFFEF3C7),
-                        iconColor: const Color(0xFFD97706),
-                        icon: Icons.confirmation_num_outlined,
-                        title: 'Coins & Vouchers',
-                        subtitle:
-                            'Explore available discount vouchers and reward coins',
-                        onTap: () {
-                          Navigator.pushNamed(
-                            context,
-                            AvailableCouponsVouchersScreen.routeName,
-                          );
-                        },
-                      ),
+                      // _buildMenuItem(
+                      //   iconBg: const Color(0xFFFEF3C7),
+                      //   iconColor: const Color(0xFFD97706),
+                      //   icon: Icons.confirmation_num_outlined,
+                      //   title: 'Coins & Vouchers',
+                      //   subtitle:
+                      //       'Explore available discount vouchers and reward coins',
+                      //   onTap: () {
+                      //     Navigator.pushNamed(
+                      //       context,
+                      //       AvailableCouponsVouchersScreen.routeName,
+                      //     );
+                      //   },
+                      // ),
 
                       _buildMenuItem(
                         iconBg: const Color(0xFFF1F5F9),
@@ -718,7 +765,11 @@ class MenuScreen extends StatelessWidget {
     );
   }
 
-  void _showAadhaarCardDialog(BuildContext context, String aadhaarStatus) {
+  void _showAadhaarCardDialog(
+    BuildContext context, {
+    required String aadhaarPhoto,
+    String? aadhaarStatus,
+  }) {
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -729,7 +780,8 @@ class MenuScreen extends StatelessWidget {
           ),
           backgroundColor: Colors.white,
           elevation: 12,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           clipBehavior: Clip.antiAlias,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -779,40 +831,75 @@ class MenuScreen extends StatelessWidget {
                 color: Color(0xFFF1F5F9),
               ),
 
-              // Card Image Container matching the screenshot
+              // Card Image Container displaying the Aadhaar photo from API
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Container(
                   width: double.infinity,
-                  height: 120,
+                  constraints: const BoxConstraints(
+                    minHeight: 180,
+                    maxHeight: 280,
+                  ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: const Color(0xFF1E293B),
-                      width: 1.5,
+                      color: const Color(0xFFE2E8F0),
+                      width: 1.2,
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Center(
-                    child: Image.asset(
-                      'assets/images/floret_logo.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Text(
-                          'Floret Technologies',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                            color: Color(0xFF8E7535),
+                  clipBehavior: Clip.antiAlias,
+                  child: aadhaarPhoto.isNotEmpty
+                      ? InteractiveViewer(
+                          panEnabled: true,
+                          minScale: 1.0,
+                          maxScale: 3.5,
+                          child: CachedNetworkImage(
+                            imageUrl: aadhaarPhoto,
+                            fit: BoxFit.contain,
+                            placeholder: (context, url) => const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Color(0xFF2563EB),
+                                ),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.broken_image_rounded,
+                                  size: 40,
+                                  color: Color(0xFF94A3B8),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Unable to load document image',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
+                        )
+                      : Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              'No Aadhaar card photo on file',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ),
+                        ),
                 ),
               ),
 
@@ -822,21 +909,33 @@ class MenuScreen extends StatelessWidget {
                 color: Color(0xFFF1F5F9),
               ),
 
-              // Bottom Aadhaar Number Text
+              // Bottom Aadhaar Number / Status Text
               Padding(
                 padding: const EdgeInsets.symmetric(
-                  vertical: 18,
+                  vertical: 16,
                   horizontal: 20,
                 ),
-                child: Text(
-                  'Aadhaar No: $aadhaarStatus',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF334155),
-                    letterSpacing: -0.2,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      size: 16,
+                      color: Color(0xFF16A34A),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      aadhaarPhoto.isNotEmpty
+                          ? 'Aadhaar Document: Verified on File'
+                          : 'Aadhaar No: ${aadhaarStatus ?? "Verified On File"}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

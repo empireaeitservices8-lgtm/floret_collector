@@ -43,14 +43,10 @@ class _VehicleAssignmentBottomSheetState
   void initState() {
     super.initState();
     final profile = widget.viewModel.profile;
-    _collectorIdController =
-        TextEditingController(text: profile.collectorId);
-    _vehicleNameController =
-        TextEditingController(text: profile.vehicleName);
-    _vehicleNumberController =
-        TextEditingController(text: profile.regNo);
-    _aadhaarPhotoController =
-        TextEditingController(text: profile.aadhaarPhoto);
+    _collectorIdController = TextEditingController(text: profile.collectorId);
+    _vehicleNameController = TextEditingController(text: profile.vehicleName);
+    _vehicleNumberController = TextEditingController(text: profile.regNo);
+    _aadhaarPhotoController = TextEditingController(text: profile.aadhaarPhoto);
 
     // If aadhaar photo or fields are empty, auto-fetch GET in background
     if (_aadhaarPhotoController.text.isEmpty) {
@@ -150,10 +146,10 @@ class _VehicleAssignmentBottomSheetState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Vehicle assigned successfully',
+              'Refreshed assigned vehicle and aadhaar details!',
               style: TextStyle(color: Colors.white),
             ),
-            backgroundColor: Colors.black,
+            backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -278,7 +274,7 @@ class _VehicleAssignmentBottomSheetState
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'POST /api/admin/assign-vehicle/',
+                      'POST ',
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w500,
@@ -336,57 +332,58 @@ class _VehicleAssignmentBottomSheetState
           // Action Buttons Row
           Row(
             children: [
-              // Fetch GET Button
-              Expanded(
-                child: SizedBox(
-                  height: 48,
-                  child: OutlinedButton(
-                    onPressed: _isFetching ? null : () => _fetchVehicleDetails(),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF4338CA),
-                      side: const BorderSide(
-                        color: Color(0xFFCBD5E1),
-                        width: 1.2,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (_isFetching)
-                          const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Color(0xFF4338CA),
-                              ),
-                            ),
-                          )
-                        else
-                          const Icon(
-                            Icons.sync_rounded,
-                            size: 18,
-                            color: Color(0xFF4338CA),
-                          ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Fetch GET',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF4338CA),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              // // Fetch GET Button
+              // Expanded(
+              //   child: SizedBox(
+              //     height: 48,
+              //     child: OutlinedButton(
+              //       onPressed:
+              //           _isFetching ? null : () => _fetchVehicleDetails(),
+              //       style: OutlinedButton.styleFrom(
+              //         foregroundColor: const Color(0xFF4338CA),
+              //         side: const BorderSide(
+              //           color: Color(0xFFCBD5E1),
+              //           width: 1.2,
+              //         ),
+              //         shape: RoundedRectangleBorder(
+              //           borderRadius: BorderRadius.circular(12),
+              //         ),
+              //         padding: const EdgeInsets.symmetric(horizontal: 14),
+              //       ),
+              //       child: Row(
+              //         mainAxisAlignment: MainAxisAlignment.center,
+              //         children: [
+              //           if (_isFetching)
+              //             const SizedBox(
+              //               width: 16,
+              //               height: 16,
+              //               child: CircularProgressIndicator(
+              //                 strokeWidth: 2,
+              //                 valueColor: AlwaysStoppedAnimation<Color>(
+              //                   Color(0xFF4338CA),
+              //                 ),
+              //               ),
+              //             )
+              //           else
+              //             const Icon(
+              //               Icons.sync_rounded,
+              //               size: 18,
+              //               color: Color(0xFF4338CA),
+              //             ),
+              //           const SizedBox(width: 8),
+              //           const Text(
+              //             'Fetch GET',
+              //             style: TextStyle(
+              //               fontSize: 14,
+              //               fontWeight: FontWeight.w700,
+              //               color: Color(0xFF4338CA),
+              //             ),
+              //           ),
+              //         ],
+              //       ),
+              //     ),
+              //   ),
+              // ),
 
               const SizedBox(width: 12),
 
@@ -427,7 +424,7 @@ class _VehicleAssignmentBottomSheetState
                           ),
                         const SizedBox(width: 8),
                         const Text(
-                          'Assign POST',
+                          'Update',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,

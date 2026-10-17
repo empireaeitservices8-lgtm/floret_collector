@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/core/storage/collector_details.dart';
 import 'package:floret_collector/services/api_client.dart';
@@ -90,12 +91,83 @@ class MenuRepository {
             collector['aadhaar_card_photo'] = aadhaarPhoto;
           }
           final colName = data['collector_name']?.toString();
-          if (colName != null && colName.trim().isNotEmpty && name.isEmpty) {
+          if (colName != null && colName.trim().isNotEmpty) {
             name = colName.trim();
             collector['name'] = name;
           }
         }
       } catch (_) {}
+
+      // 3. Fetch corresponding ward, local body, district of pickup from locations API
+      String ward = '';
+      String localBody = '';
+      String district = '';
+
+      try {
+        final locRes = await _apiClient.get(APIEndPoints.locations);
+        debugPrint('MenuRepository: GET locations response: ${locRes.statusCode}');
+        if (locRes.data is List && (locRes.data as List).isNotEmpty) {
+          final list = locRes.data as List;
+          final now = DateTime.now();
+          final todayStr =
+              '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+          Map<String, dynamic>? targetPickup;
+
+          // Find today's corresponding pickup (prioritize arrived/pending/in-progress)
+          for (final item in list) {
+            if (item is Map) {
+              final map = Map<String, dynamic>.from(item);
+              final pDate = map['pickup_date']?.toString() ?? '';
+              final pWard = map['ward']?.toString().trim() ?? '';
+              if (pWard.isNotEmpty && pDate.length >= 10 && pDate.substring(0, 10) == todayStr) {
+                final status = map['status']?.toString().toLowerCase() ?? '';
+                if (status == 'arrived' || status == 'pending' || status == 'in_progress' || status == 'in progress') {
+                  targetPickup = map;
+                  break;
+                }
+                targetPickup ??= map;
+              }
+            }
+          }
+
+          // Fallback to the first pickup with a valid ward
+          if (targetPickup == null) {
+            for (final item in list) {
+              if (item is Map) {
+                final map = Map<String, dynamic>.from(item);
+                final pWard = map['ward']?.toString().trim() ?? '';
+                if (pWard.isNotEmpty) {
+                  targetPickup = map;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (targetPickup != null) {
+            ward = targetPickup['ward']?.toString().trim() ?? '';
+            localBody = targetPickup['local_body']?.toString().trim() ?? '';
+            district = targetPickup['district']?.toString().trim() ?? '';
+
+            if (ward.isNotEmpty) collector['ward'] = ward;
+            if (localBody.isNotEmpty) collector['local_body'] = localBody;
+            if (district.isNotEmpty) collector['district'] = district;
+          }
+        }
+      } catch (e) {
+        debugPrint('MenuRepository: Error fetching locations: $e');
+      }
+
+      if (ward.isEmpty) {
+        ward = collector['ward']?.toString() ?? '';
+      }
+      if (localBody.isEmpty) {
+        localBody = collector['local_body']?.toString() ?? '';
+      }
+      if (district.isEmpty) {
+        district = collector['district']?.toString() ?? '';
+      }
 
       // Save updated cache
       await _collectorLocalStorage.saveCollector(collector);
@@ -123,7 +195,9 @@ class MenuRepository {
         vehicleName: vehicleName,
         vehicleStatus: 'Assigned',
         regNo: vehicleNumber,
-        ward: 'Ward 1',
+        ward: ward.isNotEmpty ? ward : '39 - CHIRAKANI',
+        localBody: localBody,
+        district: district,
         aadhaarStatus: 'Verified On File',
         aadhaarPhoto: aadhaarPhoto,
       );

@@ -58,7 +58,10 @@ class HomeViewModel extends ChangeNotifier {
     final collector = await _collectorLocalStorage.getCollector();
     debugPrint('Collector Details ${collector.toString()}');
 
-    _collectorName = collector?['name']?.toString() ?? '';
+    final name = collector?['name']?.toString() ?? collector?['username']?.toString();
+    _collectorName = (name != null && name.trim().isNotEmpty)
+        ? name.trim()
+        : await _collectorLocalStorage.getUsername();
     _collectorId = collector?['id']?.toString() ?? '';
 
     notifyListeners();
@@ -186,7 +189,43 @@ class HomeViewModel extends ChangeNotifier {
     return todaySlots.map((s) => s.localBody).toSet().join(', ');
   }
 
+  String get homeLocation {
+    final loc = todayLocations.isNotEmpty
+        ? todayLocations.first
+        : (_locations.isNotEmpty ? _locations.first : null);
+    if (loc != null) {
+      if (loc.localBody.isNotEmpty && loc.district.isNotEmpty) {
+        return '${loc.localBody}, ${loc.district}';
+      }
+      if (loc.district.isNotEmpty) return loc.district;
+      if (loc.localBody.isNotEmpty) return loc.localBody;
+    }
+    if (_bagAssignment != null) {
+      if (_bagAssignment!.localBody.isNotEmpty && _bagAssignment!.district.isNotEmpty) {
+        return '${_bagAssignment!.localBody}, ${_bagAssignment!.district}';
+      }
+      if (_bagAssignment!.district.isNotEmpty) return _bagAssignment!.district;
+    }
+    return todayDistrict;
+  }
+
+  String get todayWard {
+    final loc = todayLocations.isNotEmpty
+        ? todayLocations.first
+        : (_locations.isNotEmpty ? _locations.first : null);
+    if (loc != null && loc.ward.isNotEmpty) {
+      return loc.ward;
+    }
+    return '';
+  }
+
   String get todayDistrict {
+    final loc = todayLocations.isNotEmpty
+        ? todayLocations.first
+        : (_locations.isNotEmpty ? _locations.first : null);
+    if (loc != null && loc.district.isNotEmpty) {
+      return loc.district;
+    }
     // Prefer bag assignment district
     if (_bagAssignment != null && _bagAssignment!.district.isNotEmpty) {
       return _bagAssignment!.district;
@@ -197,6 +236,12 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   String get localBodyName {
+    final loc = todayLocations.isNotEmpty
+        ? todayLocations.first
+        : (_locations.isNotEmpty ? _locations.first : null);
+    if (loc != null && loc.localBody.isNotEmpty) {
+      return loc.localBody;
+    }
     // Prefer bag assignment local body
     if (_bagAssignment != null && _bagAssignment!.localBody.isNotEmpty) {
       return _bagAssignment!.localBody;

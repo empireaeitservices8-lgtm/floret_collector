@@ -123,6 +123,7 @@ void main() {
       expect(find.text('Call Support'), findsOneWidget);
       expect(find.text('+91 92920 23601'), findsOneWidget);
       expect(find.text('Email Support'), findsOneWidget);
+      expect(find.text('florettechnologies@gmail.com'), findsOneWidget);
       expect(find.text('How can we help you? Search FAQs...'), findsOneWidget);
 
       // Verify FAQ Questions from Image 1
@@ -203,6 +204,23 @@ void main() {
 
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.text('How do I confirm a cash payment?'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Tapping Call Support and Email Support cards triggers launcher without crash',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: HelpSupportScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Call Support'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Email Support'));
+      await tester.pumpAndSettle();
     });
   });
 }

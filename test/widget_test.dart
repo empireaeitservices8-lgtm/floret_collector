@@ -269,6 +269,22 @@ void main() {
     expect(find.text('Bill #233'), findsOneWidget);
     expect(find.text('Bill #232'), findsOneWidget);
 
+    // Tap on CASH payment badge -> opens receipt details bottom sheet
+    await tester.tap(find.text('CASH').first);
+    await tester.pumpAndSettle();
+
+    // Verify receipt details modal content matches screenshots
+    expect(find.text('Receipt Details'), findsOneWidget);
+    expect(find.text('TOTAL PAID'), findsOneWidget);
+    expect(find.text('Waste Weight'), findsOneWidget);
+    expect(find.text('Disposal Rate'), findsOneWidget);
+    expect(find.text('Dismiss'), findsOneWidget);
+
+    // Tap Dismiss to close bottom sheet
+    await tester.tap(find.text('Dismiss'));
+    await tester.pumpAndSettle();
+    expect(find.text('Receipt Details'), findsNothing);
+
     // Tap back button to return to MenuScreen
     await tester.tap(find.byIcon(Icons.arrow_back_rounded));
     await tester.pumpAndSettle();

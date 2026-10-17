@@ -36,6 +36,7 @@ class MenuViewModel extends ViewModel {
         vehicleName: vName,
         regNo: vNum,
         aadhaarPhoto: aPhoto,
+        aadhaarStatus: aPhoto.isNotEmpty ? 'Verified On File' : _profile.aadhaarStatus,
         name: (cName != null && cName.isNotEmpty) ? cName : _profile.name,
       );
       notifyListeners();
@@ -58,11 +59,13 @@ class MenuViewModel extends ViewModel {
         vehicleNumber: vehicleNumber,
         aadhaarPhoto: aadhaarPhoto,
       );
+      final newPhoto = res['aadhaar_card_photo']?.toString() ?? aadhaarPhoto;
       _profile = _profile.copyWith(
         collectorId: collectorId,
         vehicleName: res['vehicle_name']?.toString() ?? vehicleName,
         regNo: res['vehicle_number']?.toString() ?? vehicleNumber,
-        aadhaarPhoto: res['aadhaar_card_photo']?.toString() ?? aadhaarPhoto,
+        aadhaarPhoto: newPhoto,
+        aadhaarStatus: (newPhoto != null && newPhoto.isNotEmpty) ? 'Verified On File' : _profile.aadhaarStatus,
       );
       notifyListeners();
       return res;

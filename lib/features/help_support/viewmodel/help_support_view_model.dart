@@ -29,10 +29,16 @@ class HelpSupportViewModel extends ViewModel {
   Set<String> get expandedIds => _expandedIds;
 
   String get supportPhone =>
-      _supportInfo?.contact.phoneFormatted ?? '+91 92920 23601';
+      _supportInfo?.contact.phoneFormatted ?? '+91 9292023601';
+
+  String get rawPhone {
+    final phone = _supportInfo?.contact.phone ?? '9292023601';
+    final digits = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    return digits.isNotEmpty ? digits : '9292023601';
+  }
 
   String get supportEmail =>
-      _supportInfo?.contact.email ?? 'florettechnologi...';
+      _supportInfo?.contact.email ?? 'florettechnologies@gmail.com';
 
   bool isExpanded(String id) => _expandedIds.contains(id);
 

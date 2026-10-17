@@ -14,6 +14,7 @@ class BillItemModel {
   final String? subtotal;
   final String? gstAmount;
   final String? remarks;
+  final String? gateway;
 
   const BillItemModel({
     required this.id,
@@ -29,7 +30,50 @@ class BillItemModel {
     this.subtotal,
     this.gstAmount,
     this.remarks,
+    this.gateway,
   });
+
+  String get effectiveGateway {
+    if (gateway != null && gateway!.trim().isNotEmpty) {
+      return gateway!.trim();
+    }
+    return method.toLowerCase() == 'cash' ? 'cash' : 'razorpay';
+  }
+
+  String get effectiveTransactionId {
+    if (transactionId != null && transactionId!.trim().isNotEmpty) {
+      return transactionId!.trim();
+    }
+    return method.toLowerCase() == 'cash' ? 'BILL-$id' : 'N/A';
+  }
+
+  String get formattedRate {
+    final clean = rate
+        .replaceAll('₹', '')
+        .replaceAll('/kg', '')
+        .replaceAll('/ kg', '')
+        .trim();
+    return '₹$clean / kg';
+  }
+
+  String get formattedWeight {
+    final clean = weight
+        .replaceAll('Kgs', '')
+        .replaceAll('kgs', '')
+        .replaceAll('kg', '')
+        .replaceAll('Kg', '')
+        .trim();
+    return '$clean Kgs';
+  }
+
+  String get formattedAmount {
+    final clean = amount.replaceAll('₹', '').trim();
+    final parsed = double.tryParse(clean);
+    if (parsed != null) {
+      return parsed.toStringAsFixed(2);
+    }
+    return clean;
+  }
 
   factory BillItemModel.fromJson(Map<String, dynamic> json) {
     final rawMethod = json['payment_method']?.toString() ?? 'Cash';
@@ -46,8 +90,12 @@ class BillItemModel {
         ? 'Paid'
         : '${rawStatus[0].toUpperCase()}${rawStatus.substring(1).toLowerCase()}';
 
+    final idStr = (json['id'] ?? '').toString();
+    final txnId = json['transaction_id']?.toString() ??
+        (formattedMethod.toLowerCase() == 'cash' ? 'BILL-$idStr' : null);
+
     return BillItemModel(
-      id: (json['id'] ?? '').toString(),
+      id: idStr,
       stopId: (json['pickup_id'] ?? '').toString(),
       stopName: (json['user_name'] ?? '').toString(),
       weight: (json['weight'] ?? '0.00').toString(),
@@ -56,10 +104,11 @@ class BillItemModel {
       method: formattedMethod,
       status: formattedStatus,
       date: _formatDate(json['created_at']),
-      transactionId: json['transaction_id']?.toString(),
+      transactionId: txnId,
       subtotal: json['subtotal']?.toString(),
       gstAmount: json['gst_amount']?.toString(),
       remarks: json['remarks']?.toString(),
+      gateway: json['gateway']?.toString() ?? json['payment_gateway']?.toString(),
     );
   }
 
