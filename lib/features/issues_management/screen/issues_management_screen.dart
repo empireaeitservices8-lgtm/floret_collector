@@ -150,7 +150,12 @@ class _IssuesManagementScreenState extends State<IssuesManagementScreen> {
                                 itemCount: issues.length,
                                 itemBuilder: (context, index) {
                                   final item = issues[index];
-                                  return _buildIssueCard(item);
+                                  return InkWell(
+                                      onTap: () {
+                                        _showIssueDetailsBottomSheet(
+                                            context, vm, item);
+                                      },
+                                      child: _buildIssueCard(item));
                                 },
                               ),
                   ),
@@ -418,6 +423,415 @@ class _IssuesManagementScreenState extends State<IssuesManagementScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showIssueDetailsBottomSheet(
+    BuildContext context,
+    IssuesViewModel vm,
+    IssueModel item,
+  ) {
+    final isResolved = item.isResolved;
+    final notesController = TextEditingController();
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.9,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top Drag Handle
+                        Center(
+                          child: Container(
+                            width: 44,
+                            height: 4,
+                            margin: const EdgeInsets.only(top: 12, bottom: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFCBD5E1),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+
+                        // Header Row: Icon + "Issue Details" + Close Button
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 10, 16, 16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: isResolved
+                                      ? const Color(0xFFDCFCE7)
+                                      : const Color(0xFFFEE2E2),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    isResolved
+                                        ? Icons.check_circle_outline_rounded
+                                        : Icons.warning_amber_rounded,
+                                    color: isResolved
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFFEF4444),
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'Issue Details',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF1E293B),
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                icon: const Icon(
+                                  Icons.close_rounded,
+                                  size: 24,
+                                  color: Color(0xFF64748B),
+                                ),
+                                splashRadius: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Card: Subject, Description, Divider, User Info
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'SUBJECT',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF94A3B8),
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  item.title,
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF1E293B),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                const Text(
+                                  'DESCRIPTION',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF94A3B8),
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  item.description.isNotEmpty
+                                      ? item.description
+                                      : 'No description provided.',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                    color: Color(0xFF475569),
+                                    height: 1.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                const Divider(
+                                  color: Color(0xFFF1F5F9),
+                                  height: 1,
+                                  thickness: 1,
+                                ),
+                                const SizedBox(height: 14),
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFF1F5F9),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          item.userInitial,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.userName,
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF0F172A),
+                                            ),
+                                          ),
+                                          if (item.phoneNumber != null &&
+                                              item.phoneNumber!
+                                                  .trim()
+                                                  .isNotEmpty) ...[
+                                            const SizedBox(height: 3),
+                                            Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.phone_outlined,
+                                                  size: 13,
+                                                  color: Color(0xFF64748B),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Flexible(
+                                                  child: Text(
+                                                    item.phoneNumber!,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Color(0xFF64748B),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Resolution Notes
+                        if (!isResolved) ...[
+                          const SizedBox(height: 20),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 20),
+                            child: Text(
+                              'Resolution Notes (Optional)',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0xFFE2E8F0),
+                                ),
+                              ),
+                              child: TextField(
+                                controller: notesController,
+                                minLines: 3,
+                                maxLines: 5,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF0F172A),
+                                ),
+                                decoration: const InputDecoration(
+                                  hintText:
+                                      'Enter details describing how issue was resolved...',
+                                  hintStyle: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF94A3B8),
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.all(14),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ] else if (item.resolutionNotes != null &&
+                            item.resolutionNotes!.isNotEmpty) ...[
+                          const SizedBox(height: 20),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 20),
+                            child: Text(
+                              'Resolution Notes',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0xFFE2E8F0),
+                                ),
+                              ),
+                              child: Text(
+                                item.resolutionNotes!,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF334155),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        // Bottom Button
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: ElevatedButton(
+                              onPressed: isResolved
+                                  ? () => Navigator.pop(ctx)
+                                  : (isSubmitting
+                                      ? null
+                                      : () async {
+                                          setSheetState(
+                                              () => isSubmitting = true);
+                                          final success =
+                                              await vm.resolveIssue(
+                                            issue: item,
+                                            resolutionNotes:
+                                                notesController.text.trim(),
+                                          );
+                                          if (context.mounted) {
+                                            Navigator.pop(ctx);
+                                            if (success) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Issue marked as resolved successfully',
+                                                  ),
+                                                  backgroundColor:
+                                                      Color(0xFF10B981),
+                                                ),
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Failed to resolve issue. Please try again.',
+                                                  ),
+                                                  backgroundColor:
+                                                      Color(0xFFEF4444),
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        }),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E293B),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: isSubmitting
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2.5,
+                                      ),
+                                    )
+                                  : Text(
+                                      isResolved
+                                          ? 'Close'
+                                          : 'Mark as Resolved',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

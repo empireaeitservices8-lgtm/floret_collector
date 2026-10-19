@@ -69,4 +69,30 @@ class IssuesViewModel extends ViewModel {
       notifyListeners();
     }
   }
+
+  Future<bool> resolveIssue({
+    required IssueModel issue,
+    required String resolutionNotes,
+  }) async {
+    final success = await _repository.resolveIssue(
+      issueId: issue.id,
+      pickupId: issue.pickupId,
+      resolutionNotes: resolutionNotes,
+    );
+
+    if (success) {
+      final index = _allIssues.indexWhere((i) => i.id == issue.id);
+      if (index != -1) {
+        _allIssues[index] = _allIssues[index].copyWith(
+          isResolved: true,
+          resolutionNotes: resolutionNotes,
+          resolvedAt: DateTime.now().toIso8601String(),
+        );
+        notifyListeners();
+      }
+      _allIssues = await _repository.fetchIssues();
+      notifyListeners();
+    }
+    return success;
+  }
 }

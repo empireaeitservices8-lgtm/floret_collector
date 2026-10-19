@@ -49,6 +49,61 @@ class IssuesRepository {
     }
   }
 
+  Future<bool> resolveIssue({
+    required String issueId,
+    int? pickupId,
+    required String resolutionNotes,
+  }) async {
+    try {
+      final int parsedIssueId = int.tryParse(issueId) ?? 0;
+      final issueBody = {
+        "issue_id": parsedIssueId,
+        "status": "resolved",
+        "resolution_notes": resolutionNotes,
+      };
+
+      // ignore: avoid_print
+      print(
+          'POST update-issue-status to ${APIEndPoints.baseUrl}${APIEndPoints.updateIssueStatus} with body: ${jsonEncode(issueBody)}');
+
+      final response = await _apiClient.post(
+        APIEndPoints.updateIssueStatus,
+        data: issueBody,
+      );
+
+      // ignore: avoid_print
+      print(
+          'Update Issue Status Response Status: ${response.statusCode}, Body: ${response.data is Map ? jsonEncode(response.data) : response.data}');
+
+      if (pickupId != null && pickupId > 0) {
+        final pickupBody = {
+          "pickup_id": pickupId,
+          "status": "resolved",
+          "reason": resolutionNotes,
+        };
+
+        // ignore: avoid_print
+        print(
+            'POST status update to ${APIEndPoints.baseUrl}${APIEndPoints.updatePickupStatus} with body: ${jsonEncode(pickupBody)}');
+
+        final pickupResponse = await _apiClient.post(
+          APIEndPoints.updatePickupStatus,
+          data: pickupBody,
+        );
+
+        // ignore: avoid_print
+        print(
+            'Status Update Response Status: ${pickupResponse.statusCode}, Body: ${pickupResponse.data is Map ? jsonEncode(pickupResponse.data) : pickupResponse.data}');
+      }
+
+      return response.statusCode == 200;
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error updating issue status: $e');
+      return false;
+    }
+  }
+
   List<IssueModel> getMockIssues() {
     // Returns dataset exactly matching the screenshots
     return [

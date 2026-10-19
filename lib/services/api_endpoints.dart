@@ -31,6 +31,7 @@ class APIEndPoints {
   //issues
   static const String issues = '/api/issues/';
   static const String reportIssue = '/api/report-issue/';
+  static const String updateIssueStatus = '/api/update-issue-status/';
 
   //direct disposal
   static const String directDisposal = '/api/direct-disposal/';
