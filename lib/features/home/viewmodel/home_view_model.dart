@@ -1,3 +1,5 @@
+import 'package:floret_collector/core/di/injection.dart';
+import 'package:floret_collector/features/collection_history/repos/collection_history_repository.dart';
 import 'package:floret_collector/features/home/model/bag_assignment_model.dart';
 import 'package:floret_collector/features/home/model/bag_model.dart';
 import 'package:floret_collector/features/home/model/location_pickup_model.dart';
@@ -12,14 +14,20 @@ class HomeViewModel extends ChangeNotifier {
   final HomeRepository _repository;
   final CollectorLocalStorage _collectorLocalStorage;
   final CollectionMetricsStorage _metricsStorage;
+  final CollectionHistoryRepository _collectionHistoryRepository;
 
   HomeViewModel({
     required HomeRepository repository,
     required CollectorLocalStorage collectorLocalStorage,
     CollectionMetricsStorage? metricsStorage,
+    CollectionHistoryRepository? collectionHistoryRepository,
   })  : _repository = repository,
         _collectorLocalStorage = collectorLocalStorage,
-        _metricsStorage = metricsStorage ?? CollectionMetricsStorage() {
+        _metricsStorage = metricsStorage ?? CollectionMetricsStorage(),
+        _collectionHistoryRepository = collectionHistoryRepository ??
+            (getIt.isRegistered<CollectionHistoryRepository>()
+                ? getIt<CollectionHistoryRepository>()
+                : CollectionHistoryRepository()) {
     _metricsStorage.addListener(_onMetricsChanged);
     _metricsStorage.loadTodayMetrics();
   }
@@ -38,6 +46,11 @@ class HomeViewModel extends ChangeNotifier {
   BagAssignmentModel? _bagAssignment;
   List<LocationPickupModel> _locations = [];
 
+  // Metrics from Collection History API
+  double _historyTodayWeight = 0.0;
+  double _historyTodayAmount = 0.0;
+  bool _hasHistoryMetrics = false;
+
   // Getters
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -47,11 +60,38 @@ class HomeViewModel extends ChangeNotifier {
   BagAssignmentModel? get bagAssignment => _bagAssignment;
   List<LocationPickupModel> get locations => List.unmodifiable(_locations);
 
-  // Daily collection metrics
-  double get todayWeight => _metricsStorage.todayWeight;
-  double get todayAmount => _metricsStorage.todayAmount;
-  String get formattedWeight => _metricsStorage.formattedWeight;
-  String get formattedCollectedAmount => _metricsStorage.formattedAmount;
+  // Daily collection metrics (prioritizes collection history from backend, falls back to local storage)
+  double get todayWeight {
+    if (_hasHistoryMetrics && _historyTodayWeight > 0) {
+      return _historyTodayWeight;
+    }
+    return _metricsStorage.todayWeight;
+  }
+
+  double get todayAmount {
+    if (_hasHistoryMetrics && _historyTodayAmount > 0) {
+      return _historyTodayAmount;
+    }
+    return _metricsStorage.todayAmount;
+  }
+
+  String get formattedWeight {
+    final w = todayWeight;
+    if (w <= 0) return '0.0 kg';
+    if (w == w.roundToDouble()) {
+      return '${w.toInt()} kg';
+    }
+    return '${w.toStringAsFixed(1)} kg';
+  }
+
+  String get formattedCollectedAmount {
+    final a = todayAmount;
+    if (a <= 0) return '₹0';
+    if (a == a.roundToDouble()) {
+      return '₹${a.toInt()}';
+    }
+    return '₹${a.toStringAsFixed(2)}';
+  }
 
   // Load collector details from SharedPrefs
   Future<void> loadCollector() async {
@@ -92,12 +132,62 @@ class HomeViewModel extends ChangeNotifier {
   // Refresh all home data
   Future<void> refresh() async {
     await Future.wait([
-      loadCollector().then((_) => loadBagAssignment()),
+      loadCollector().then((_) {
+        loadBagAssignment();
+        return loadTodayCollectionMetrics();
+      }),
       loadLocations(),
       loadBags(),
       loadPickupSlots(showLoading: false),
       _metricsStorage.loadTodayMetrics(),
     ]);
+  }
+
+  // Load today's weight & amount from collection history
+  Future<void> loadTodayCollectionMetrics() async {
+    try {
+      final id = _collectorId.isNotEmpty
+          ? _collectorId
+          : await _collectorLocalStorage.getCollectorId();
+
+      final result = await _collectionHistoryRepository.fetchHistory(
+        collectorId: id.isNotEmpty ? id : null,
+      );
+
+      final now = DateTime.now();
+      final todayStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      double weightSum = 0.0;
+      double amountSum = 0.0;
+      int todayCount = 0;
+
+      for (final item in result.items) {
+        bool isToday = false;
+        if (item.dateTime != null) {
+          isToday = item.dateTime!.year == now.year &&
+              item.dateTime!.month == now.month &&
+              item.dateTime!.day == now.day;
+        } else if (item.date.isNotEmpty) {
+          isToday = item.date.contains(todayStr);
+        }
+
+        if (isToday) {
+          weightSum += item.weight;
+          amountSum += item.amount;
+          todayCount++;
+        }
+      }
+
+      if (todayCount > 0) {
+        _historyTodayWeight = weightSum;
+        _historyTodayAmount = amountSum;
+        _hasHistoryMetrics = true;
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading today metrics from collection history: $e');
+    }
   }
 
   // Load bag assignment (remaining covers, local body info)

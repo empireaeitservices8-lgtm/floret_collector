@@ -608,15 +608,18 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF1E293B),
                   ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
+                  // decoration: const InputDecoration(
+                  //   border: InputBorder.none,
+                  //   isDense: true,
+                  //   contentPadding: EdgeInsets.zero,
+                  // ),
                 ),
               ),
+              const SizedBox(
+                width: 2,
+              ),
               const Text(
-                'Kgs',
+                'Kg',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
@@ -681,9 +684,11 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
             ),
           ),
           Switch(
-            value: _redeemWallet,
-            activeThumbColor: const Color(0xFF1E293B),
-            onChanged: (val) => setState(() => _redeemWallet = val),
+            value: false,
+            onChanged: null,
+            // value: _redeemWallet,
+            // activeThumbColor: const Color(0xFF1E293B),
+            // onChanged: (val) => setState(() => _redeemWallet = val),
           ),
         ],
       ),
@@ -708,8 +713,8 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
   }
 
   Widget _buildCouponsCard() {
-    final activeVoucher = _selectedVoucher ??
-        (_vouchers.isNotEmpty ? _vouchers.first : null);
+    final activeVoucher =
+        _selectedVoucher ?? (_vouchers.isNotEmpty ? _vouchers.first : null);
     final voucherCode = activeVoucher?['code']?.toString() ??
         activeVoucher?['voucher_code']?.toString() ??
         'FLT-250';
@@ -807,9 +812,11 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                 ),
                 const Spacer(),
                 Switch(
-                  value: _applyCoupon,
-                  activeThumbColor: const Color(0xFF1E293B),
-                  onChanged: (val) => setState(() => _applyCoupon = val),
+                  value: false,
+                  onChanged: null,
+                  // value: _applyCoupon,
+                  // activeThumbColor: const Color(0xFF1E293B),
+                  // onChanged: (val) => setState(() => _applyCoupon = val),
                 ),
               ],
             ),
@@ -923,7 +930,8 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.shield_rounded, size: 12, color: Color(0xFF16A34A)),
+                    Icon(Icons.shield_rounded,
+                        size: 12, color: Color(0xFF16A34A)),
                     SizedBox(width: 4),
                     Text(
                       'SECURE',
@@ -952,7 +960,8 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _handleGenerateRazorpayQR,
-              icon: const Icon(Icons.qr_code_rounded, size: 18, color: Colors.white),
+              icon: const Icon(Icons.qr_code_rounded,
+                  size: 18, color: Colors.white),
               label: const Text(
                 'Generate Razorpay QR',
                 style: TextStyle(
@@ -1202,8 +1211,8 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                   onTap: isUploading ? null : () => _uploadPhoto(index),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 7),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E293B),
                       borderRadius: BorderRadius.circular(8),
@@ -1240,8 +1249,8 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                 )
               else
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: const Color(0xFFDCFCE7),
                     borderRadius: BorderRadius.circular(8),
@@ -1355,8 +1364,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
       children: [
         for (int i = 0; i < _verificationPhotos.length; i++)
           _buildPhotoItemCard(i, _verificationPhotos[i]),
-        if (_verificationPhotos.length < 5)
-          _buildAddPhotoCard(),
+        if (_verificationPhotos.length < 5) _buildAddPhotoCard(),
       ],
     );
   }

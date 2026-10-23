@@ -31,7 +31,10 @@ class HomeScreen extends StatelessWidget {
     return ChangeNotifierProvider<HomeViewModel>(
       create: (_) {
         final vm = getIt<HomeViewModel>();
-        vm.loadCollector().then((_) => vm.loadBagAssignment());
+        vm.loadCollector().then((_) {
+          vm.loadBagAssignment();
+          vm.loadTodayCollectionMetrics();
+        });
         vm.loadLocations();
         vm.loadBags();
         vm.loadPickupSlots();
@@ -47,7 +50,7 @@ class HomeScreen extends StatelessWidget {
               }
 
               return RefreshIndicator(
-                onRefresh: () => vm.loadPickupSlots(),
+                onRefresh: () => vm.refresh(),
                 color: const Color(0xFF1E293B),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -68,7 +71,8 @@ class HomeScreen extends StatelessWidget {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              vm.homeLocation.isNotEmpty && vm.homeLocation != 'N/A'
+                              vm.homeLocation.isNotEmpty &&
+                                      vm.homeLocation != 'N/A'
                                   ? vm.homeLocation
                                   : vm.todayDistrict,
                               style: const TextStyle(
@@ -95,7 +99,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 18),
 
-                      // ── KPI Cards ──
+                      // ── Wight Card ──
                       Row(
                         children: [
                           // Remaining Covers
@@ -662,9 +666,10 @@ class HomeScreen extends StatelessWidget {
     final progress = totalToday > 0 ? completed / totalToday : 0.0;
 
     // Build ward area label
-    final areaLabel = vm.todayLocations.isNotEmpty && vm.todayLocations.first.ward.isNotEmpty
-        ? vm.todayLocations.first.ward
-        : (vm.todayWard.isNotEmpty ? vm.todayWard : vm.localBodyName);
+    final areaLabel =
+        vm.todayLocations.isNotEmpty && vm.todayLocations.first.ward.isNotEmpty
+            ? vm.todayLocations.first.ward
+            : (vm.todayWard.isNotEmpty ? vm.todayWard : vm.localBodyName);
 
     return Container(
       width: double.infinity,

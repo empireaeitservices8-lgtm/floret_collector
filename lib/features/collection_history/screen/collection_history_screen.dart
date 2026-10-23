@@ -44,8 +44,9 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
           child: Consumer<CollectionHistoryViewModel>(
             builder: (context, vm, _) {
               final summary = vm.effectiveSummary;
-              final history = vm.filteredHistory;
 
+              final history = vm.filteredHistory;
+              debugPrint(history.toString());
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -149,7 +150,7 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
   Widget _buildSummaryCard(CollectionSummaryModel summary) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(18),
@@ -161,119 +162,171 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Column 1: Total Stops
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.local_shipping_outlined,
-                  color: Colors.white70,
-                  size: 20,
+          // Header / Badge: "Till Today"
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'COLLECTION SUMMARY',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white60,
+                  letterSpacing: 0.8,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '${summary.totalStops}',
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -0.3,
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF38BDF8).withValues(alpha: 0.3),
+                    width: 0.8,
                   ),
                 ),
-                const SizedBox(height: 2),
-                const Text(
-                  'Total Stops',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white70,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(
+                      Icons.calendar_today_rounded,
+                      size: 11,
+                      color: Color(0xFF38BDF8),
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'Till Today',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF38BDF8),
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              // Column 1: Total Pickups
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.local_shipping_outlined,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${summary.totalStops}',
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Total Pickups',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
-          // Divider
-          Container(
-            height: 38,
-            width: 1,
-            color: Colors.white.withValues(alpha: 0.15),
-          ),
+              // Divider
+              Container(
+                height: 38,
+                width: 1,
+                color: Colors.white.withValues(alpha: 0.15),
+              ),
 
-          // Column 2: Weight
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.scale_outlined,
-                  color: Colors.white70,
-                  size: 20,
+              // Column 2: Total Weight
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.scale_outlined,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      summary.formattedWeight,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Total Weight',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '${summary.totalWeight.toStringAsFixed(1)} kg',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                const Text(
-                  'Weight',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
 
-          // Divider
-          Container(
-            height: 38,
-            width: 1,
-            color: Colors.white.withValues(alpha: 0.15),
-          ),
+              // Divider
+              Container(
+                height: 38,
+                width: 1,
+                color: Colors.white.withValues(alpha: 0.15),
+              ),
 
-          // Column 3: Amount
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.payments_outlined,
-                  color: Colors.white70,
-                  size: 20,
+              // Column 3: Total Amount
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.payments_outlined,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      summary.formattedAmount,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Total Amount',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '₹${summary.totalAmount.toInt()}',
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                const Text(
-                  'Amount',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -879,7 +932,7 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
     );
   }
 
-  // Empty State (Image 4): "No Collection Logs Found"
+  // Empty State: "No History Found"
   Widget _buildEmptyState(CollectionHistoryViewModel vm) {
     return Center(
       child: Padding(
@@ -907,7 +960,7 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
             const SizedBox(height: 20),
 
             const Text(
-              'No Collection Logs Found',
+              'No History Found',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,

@@ -275,14 +275,14 @@ class ScheduleScreen extends StatelessWidget {
             children: [
               const Icon(
                 Icons.assignment_outlined,
-                size: 18,
+                size: 12,
                 color: Color(0xFF64748B),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 2),
               Text(
                 'Sanitary pickups: ${vm.sanitaryPickupsText}',
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 9,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF64748B),
                 ),
@@ -290,14 +290,14 @@ class ScheduleScreen extends StatelessWidget {
               const SizedBox(width: 16),
               const Icon(
                 Icons.grid_view_rounded,
-                size: 16,
+                size: 12,
                 color: Color(0xFF64748B),
               ),
               const SizedBox(width: 6),
               Text(
                 'Scrap pickups: ${vm.scrapPickupsText}',
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 9,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF64748B),
                 ),
@@ -350,9 +350,7 @@ class ScheduleScreen extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isArrived
-              ? const Color(0xFF10B981)
-              : const Color(0xFFE2E8F0),
+          color: isArrived ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
           width: isArrived ? 1.5 : 1.0,
         ),
       ),

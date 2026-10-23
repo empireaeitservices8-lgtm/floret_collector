@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class CollectionItemModel {
   final String id;
@@ -28,9 +29,42 @@ class CollectionItemModel {
   });
 
   factory CollectionItemModel.fromJson(Map<String, dynamic> json) {
-    final rawWeight = json['weight'] ?? json['weight_collected'] ?? 0.0;
+    // Check nested structures if present
+    final payment = json['payment'] is Map ? json['payment'] as Map : null;
+    final where = json['where'] is Map ? json['where'] as Map : null;
+    final when = json['when'] is Map ? json['when'] as Map : null;
+    final collectionDetails = json['collection_details'] is Map
+        ? json['collection_details'] as Map
+        : null;
+
+    final rawWeight = json['weight'] ??
+        json['weight_collected'] ??
+        collectionDetails?['weight'] ??
+        0.0;
     final rawRate = json['rate'] ?? json['rate_per_kg'] ?? 0.0;
-    final rawAmount = json['amount'] ?? json['total_amount'] ?? 0.0;
+    final rawAmount = json['amount'] ??
+        json['total_amount'] ??
+        payment?['total_amount'] ??
+        payment?['subtotal'] ??
+        0.0;
+
+    final rawDate = json['date'] ??
+        json['collection_date'] ??
+        json['created_at'] ??
+        when?['pickup_date'] ??
+        payment?['bill_created_at'] ??
+        '';
+
+    DateTime? parsedDate;
+    final dateStr = rawDate.toString().trim();
+    if (dateStr.isNotEmpty) {
+      parsedDate = DateTime.tryParse(dateStr);
+      if (parsedDate == null) {
+        try {
+          parsedDate = DateFormat('dd MMM yyyy, hh:mm a').parse(dateStr);
+        } catch (_) {}
+      }
+    }
 
     return CollectionItemModel(
       id: json['id']?.toString() ?? '',
@@ -43,21 +77,30 @@ class CollectionItemModel {
           json['stopName']?.toString() ??
           json['user_name']?.toString() ??
           json['customer_name']?.toString() ??
+          where?['name']?.toString() ??
           '',
       wasteType: json['waste_type']?.toString() ??
           json['wasteType']?.toString() ??
+          collectionDetails?['waste_type']?.toString() ??
           'General Waste',
       status: json['payment_status']?.toString() ??
+          payment?['payment_status']?.toString() ??
           json['status']?.toString() ??
+          collectionDetails?['status']?.toString() ??
           'Paid',
-      weight: rawWeight is num ? rawWeight.toDouble() : (double.tryParse(rawWeight.toString()) ?? 0.0),
-      rate: rawRate is num ? rawRate.toDouble() : (double.tryParse(rawRate.toString()) ?? 0.0),
-      amount: rawAmount is num ? rawAmount.toDouble() : (double.tryParse(rawAmount.toString()) ?? 0.0),
-      date: json['date']?.toString() ??
-          json['collection_date']?.toString() ??
-          json['created_at']?.toString() ??
-          '',
+      weight: rawWeight is num
+          ? rawWeight.toDouble()
+          : (double.tryParse(rawWeight.toString()) ?? 0.0),
+      rate: rawRate is num
+          ? rawRate.toDouble()
+          : (double.tryParse(rawRate.toString()) ?? 0.0),
+      amount: rawAmount is num
+          ? rawAmount.toDouble()
+          : (double.tryParse(rawAmount.toString()) ?? 0.0),
+      date: dateStr,
+      dateTime: parsedDate,
       paymentMethod: json['payment_method']?.toString() ??
+          payment?['payment_method']?.toString() ??
           json['method']?.toString() ??
           'Cash',
     );
@@ -74,6 +117,24 @@ class CollectionSummaryModel {
     this.totalWeight = 0.0,
     this.totalAmount = 0.0,
   });
+
+  int get totalPickups => totalStops;
+
+  String get formattedWeight {
+    if (totalWeight <= 0) return '0.0 kg';
+    if (totalWeight == totalWeight.roundToDouble()) {
+      return '${totalWeight.toInt()} kg';
+    }
+    return '${totalWeight.toStringAsFixed(1)} kg';
+  }
+
+  String get formattedAmount {
+    if (totalAmount <= 0) return '₹0';
+    if (totalAmount == totalAmount.roundToDouble()) {
+      return '₹${totalAmount.toInt()}';
+    }
+    return '₹${totalAmount.toStringAsFixed(2)}';
+  }
 
   factory CollectionSummaryModel.fromJson(Map<String, dynamic> json) {
     final totalStops = json['total_collections'] ?? json['total_stops'] ?? 0;

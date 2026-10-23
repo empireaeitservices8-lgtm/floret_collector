@@ -115,6 +115,7 @@ Future<void> initializeDependencies() async {
       repository: getIt<HomeRepository>(),
       collectorLocalStorage: getIt<CollectorLocalStorage>(),
       metricsStorage: getIt<CollectionMetricsStorage>(),
+      collectionHistoryRepository: getIt<CollectionHistoryRepository>(),
     ),
   );
 

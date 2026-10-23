@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/providers/view_model.dart';
 import '../model/collection_history_model.dart';
@@ -10,11 +11,7 @@ class CollectionHistoryViewModel extends ViewModel {
   bool _isTimeoutError = false;
   String _errorMessage = '';
   List<CollectionItemModel> _allHistory = [];
-  CollectionSummaryModel _baseSummary = const CollectionSummaryModel(
-    totalStops: 348,
-    totalWeight: 19104.0,
-    totalAmount: 786223.0,
-  );
+  CollectionSummaryModel _baseSummary = const CollectionSummaryModel();
   String _searchQuery = '';
   CollectionFilterModel _filter = CollectionFilterModel.empty;
 
@@ -110,8 +107,20 @@ class CollectionHistoryViewModel extends ViewModel {
 
     final list = filteredHistory;
 
-    // When empty (e.g. Bio waste selected in Image 4)
-    if (list.isEmpty) {
+    // Filter items till today
+    final now = DateTime.now();
+    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final tillTodayList = list.where((item) {
+      if (item.dateTime == null) return true;
+      return item.dateTime!.isBefore(endOfToday) ||
+          item.dateTime!.isAtSameMomentAs(endOfToday);
+    }).toList();
+
+    // When empty
+    if (tillTodayList.isEmpty) {
+      if (!_filter.hasFilters && _searchQuery.trim().isEmpty) {
+        return _baseSummary;
+      }
       return const CollectionSummaryModel(
         totalStops: 0,
         totalWeight: 0.0,
@@ -119,19 +128,22 @@ class CollectionHistoryViewModel extends ViewModel {
       );
     }
 
-    // When user has active filters or search applied
-    if (_filter.hasFilters || _searchQuery.trim().isNotEmpty) {
-      final totalWeight = list.fold<double>(0.0, (sum, i) => sum + i.weight);
-      final totalAmount = list.fold<double>(0.0, (sum, i) => sum + i.amount);
-      return CollectionSummaryModel(
-        totalStops: list.length,
-        totalWeight: totalWeight,
-        totalAmount: totalAmount,
-      );
+    if (!_filter.hasFilters &&
+        _searchQuery.trim().isEmpty &&
+        _baseSummary.totalStops > 0) {
+      return _baseSummary;
     }
 
-    // Default when no filters applied (Image 1, Image 2)
-    return _baseSummary;
+    final totalWeight =
+        tillTodayList.fold<double>(0.0, (sum, i) => sum + i.weight);
+    final totalAmount =
+        tillTodayList.fold<double>(0.0, (sum, i) => sum + i.amount);
+
+    return CollectionSummaryModel(
+      totalStops: tillTodayList.length,
+      totalWeight: totalWeight,
+      totalAmount: totalAmount,
+    );
   }
 
   int _currentLoadId = 0;
@@ -148,11 +160,42 @@ class CollectionHistoryViewModel extends ViewModel {
     if (loadId != _currentLoadId) return;
 
     try {
-      final result =
-          await _repository.fetchHistory(simulateTimeout: simulateTimeout);
+      final now = DateTime.now();
+      final defaultDateTo = DateFormat('yyyy-MM-dd').format(now);
+      final defaultDateFrom =
+          DateFormat('yyyy-MM-dd').format(DateTime(now.year, now.month - 1, 1));
+
+      final dateFrom = _filter.dateRange != null
+          ? DateFormat('yyyy-MM-dd').format(_filter.dateRange!.start)
+          : defaultDateFrom;
+      final dateTo = _filter.dateRange != null
+          ? DateFormat('yyyy-MM-dd').format(_filter.dateRange!.end)
+          : defaultDateTo;
+      final wasteType = _filter.wasteType != 'All' ? _filter.wasteType : null;
+      final paymentStatus =
+          _filter.paymentStatus != 'All' ? _filter.paymentStatus : null;
+
+      final result = await _repository.fetchHistory(
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+        wasteType: wasteType,
+        paymentStatus: paymentStatus,
+        simulateTimeout: simulateTimeout,
+      );
       if (loadId != _currentLoadId) return;
       _allHistory = result.items;
       _baseSummary = result.summary;
+      if (_baseSummary.totalStops == 0 && result.items.isNotEmpty) {
+        final totalWeight =
+            result.items.fold<double>(0.0, (sum, i) => sum + i.weight);
+        final totalAmount =
+            result.items.fold<double>(0.0, (sum, i) => sum + i.amount);
+        _baseSummary = CollectionSummaryModel(
+          totalStops: result.items.length,
+          totalWeight: totalWeight,
+          totalAmount: totalAmount,
+        );
+      }
       _isTimeoutError = false;
     } catch (e) {
       if (loadId != _currentLoadId) return;
