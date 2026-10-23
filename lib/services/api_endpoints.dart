@@ -41,6 +41,7 @@ class APIEndPoints {
 
   //collection route & payment
   static const String wardCollectionRoutes = '/api/ward-collection-routes/';
+  static const String pickupDetails = '/api/pickup-details/';
   static const String startTrackingRoute = '/api/start-tracking/';
   static const String confirmRouteStart = '/api/confirm-route-start/';
   static const String startNavigate = '/api/start-navigate/';

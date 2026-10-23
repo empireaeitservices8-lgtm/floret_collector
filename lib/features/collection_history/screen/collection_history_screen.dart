@@ -347,7 +347,7 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
@@ -386,6 +386,8 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
                         )
                       : null,
                   border: InputBorder.none,
+                  filled: true,
+                  fillColor: Colors.white,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 14,

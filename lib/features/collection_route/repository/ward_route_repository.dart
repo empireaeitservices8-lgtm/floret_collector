@@ -56,7 +56,7 @@ class WardPickup {
     return WardPickup(
       id: rawId,
       pickupId: rawPickupId,
-      name: (json['name']?.toString() ?? '').trim(),
+      name: (json['user_name']?.toString() ?? json['name']?.toString() ?? '').trim(),
       address: (json['address']?.toString() ?? '').trim(),
       pickupDate: json['pickup_date']?.toString() ?? '',
       pickupTimeSlot: json['pickup_time_slot']?.toString() ?? '',
@@ -69,7 +69,8 @@ class WardPickup {
       district: district ?? json['district']?.toString(),
       contactNumber: json['contact_number']?.toString() ??
           json['phone']?.toString() ??
-          json['contact']?.toString(),
+          json['contact']?.toString() ??
+          json['user_phone']?.toString(),
       email: json['email']?.toString() ?? json['user_email']?.toString(),
       placement: json['placement']?.toString() ??
           json['garbage_placement']?.toString() ??
@@ -289,6 +290,27 @@ class WardRouteRepository {
       return null;
     } catch (e) {
       debugPrint('confirm-reached error: $e');
+      return null;
+    }
+  }
+
+  /// GET /api/pickup-details/?pickup_id=$pickupId
+  Future<Map<String, dynamic>?> fetchPickupDetails({
+    required int pickupId,
+  }) async {
+    try {
+      final dio = await _client();
+      final url = '${APIEndPoints.pickupDetails}?pickup_id=$pickupId';
+      debugPrint('GET pickup-details from ${APIEndPoints.baseUrl}$url');
+      final res = await dio.get(url);
+      debugPrint(
+          'Fetch Pickup Details Status: ${res.statusCode}, Body: ${res.data}');
+      if (res.statusCode == 200 && res.data is Map<String, dynamic>) {
+        return res.data as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('pickup-details error: $e');
       return null;
     }
   }

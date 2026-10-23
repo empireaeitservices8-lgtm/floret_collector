@@ -225,7 +225,8 @@ class _LoginViewState extends State<_LoginView> {
                   // Username
                   Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: Colors.white,
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: TextField(
@@ -248,6 +249,8 @@ class _LoginViewState extends State<_LoginView> {
                           size: 20,
                         ),
                         border: InputBorder.none,
+                        filled: true,
+                        fillColor: Colors.white,
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 16,
@@ -276,7 +279,8 @@ class _LoginViewState extends State<_LoginView> {
                   // Password
                   Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: Colors.white,
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: TextField(
@@ -315,6 +319,8 @@ class _LoginViewState extends State<_LoginView> {
                           ),
                         ),
                         border: InputBorder.none,
+                        filled: true,
+                        fillColor: Colors.white,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 16,

@@ -606,7 +606,7 @@ class _RazorpayQRScreenState extends State<RazorpayQRScreen>
                 prefixIcon: const Icon(Icons.alternate_email_rounded, size: 20),
                 hintText: 'e.g. mobile@upi',
                 filled: true,
-                fillColor: const Color(0xFFF8FAFC),
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),

@@ -1,4 +1,4 @@
-﻿import 'package:floret_collector/utils/colors.dart';
+import 'package:floret_collector/utils/colors.dart';
 import 'package:floret_collector/utils/styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -132,7 +132,8 @@ class CustomTextField extends StatelessWidget {
                           : contentPadding ??
                               EdgeInsets.only(
                                   left: 0, top: 12, right: 4, bottom: 4),
-                      //filled: true,
+                      filled: true,
+                      fillColor: Colors.white,
                       isDense: true,
                       suffixIcon: suffixWidget != null
                           //  suffixIconConstraints: BoxConstraints(minWidth: 15, minHeight: 19,maxWidth: 15, maxHeight: 19,),

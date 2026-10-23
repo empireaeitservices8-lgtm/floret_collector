@@ -123,9 +123,7 @@ ThemeData _buildTheme({required Brightness brightness}) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: isDark
-          ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.25)
-          : colorScheme.surfaceContainerHighest.withValues(alpha: 0.50),
+      fillColor: Colors.white,
       hintStyle: base.textTheme.bodyMedium?.copyWith(
         color: colorScheme.onSurfaceVariant,
       ),

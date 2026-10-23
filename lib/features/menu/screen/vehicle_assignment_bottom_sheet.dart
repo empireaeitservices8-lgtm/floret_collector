@@ -191,7 +191,7 @@ class _VehicleAssignmentBottomSheetState
           height: 52,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
@@ -215,6 +215,8 @@ class _VehicleAssignmentBottomSheetState
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
                 ),
               ),

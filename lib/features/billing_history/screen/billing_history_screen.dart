@@ -89,7 +89,7 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
@@ -128,6 +128,8 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                                 )
                               : null,
                           border: InputBorder.none,
+                          filled: true,
+                          fillColor: Colors.white,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 14,

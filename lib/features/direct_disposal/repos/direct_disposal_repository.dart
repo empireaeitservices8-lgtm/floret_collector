@@ -14,7 +14,9 @@ class DirectDisposalRepository {
     ApiClient? apiClient,
     CollectorLocalStorage? collectorLocalStorage,
   })  : _apiClient = apiClient ??
-            (getIt.isRegistered<ApiClient>() ? getIt<ApiClient>() : ApiClient()),
+            (getIt.isRegistered<ApiClient>()
+                ? getIt<ApiClient>()
+                : ApiClient()),
         _collectorLocalStorage = collectorLocalStorage ??
             (getIt.isRegistered<CollectorLocalStorage>()
                 ? getIt<CollectorLocalStorage>()
@@ -95,11 +97,26 @@ class DirectDisposalRepository {
             .map((item) => DirectDisposalLogModel.fromJson(
                 Map<String, dynamic>.from(item as Map)))
             .toList();
-        if (fetched.isNotEmpty) {
-          _logs.clear();
-          _logs.addAll(fetched);
-          return List.from(_logs);
-        }
+        final username =
+            (await _collectorLocalStorage.getUsername()).trim().toLowerCase();
+
+      final collector = await _collectorLocalStorage.getCollector();
+        final collectorName =
+            (collector?['name']?.toString() ?? '').trim().toLowerCase();
+        final collectorId =
+            (await _collectorLocalStorage.getCollectorId()).trim().toLowerCase();
+
+        final userLogs = fetched.where((log) {
+          final rec = (log.recordedBy ?? '').trim().toLowerCase();
+          if (rec.isEmpty) return false;
+          return (username.isNotEmpty && rec == username) ||
+              (collectorName.isNotEmpty && rec == collectorName) ||
+              (collectorId.isNotEmpty && rec == collectorId);
+        }).toList();
+
+        _logs.clear();
+        _logs.addAll(userLogs);
+        return List.from(_logs);
       }
     } catch (_) {}
 
@@ -120,13 +137,16 @@ class DirectDisposalRepository {
   }) async {
     int resolvedLocalBody = localBody ?? 15;
     int resolvedWard = ward ?? 1;
+    String username = '';
 
     try {
+      username = await _collectorLocalStorage.getUsername();
       final collector = await _collectorLocalStorage.getCollector();
       if (collector != null) {
         if (collector['local_body'] != null) {
           resolvedLocalBody =
-              int.tryParse(collector['local_body'].toString()) ?? resolvedLocalBody;
+              int.tryParse(collector['local_body'].toString()) ??
+                  resolvedLocalBody;
         }
         if (collector['ward'] != null) {
           resolvedWard =
@@ -146,6 +166,7 @@ class DirectDisposalRepository {
       'disposal_rate': disposalRate,
       'local_body': resolvedLocalBody,
       'ward': resolvedWard,
+      if (username.isNotEmpty) 'recorded_by': username,
     };
 
     try {
@@ -168,6 +189,9 @@ class DirectDisposalRepository {
       if (response.data is Map && response.data['disposal'] != null) {
         final disposalData =
             Map<String, dynamic>.from(response.data['disposal'] as Map);
+        if (disposalData['recorded_by'] == null && username.isNotEmpty) {
+          disposalData['recorded_by'] = username;
+        }
         final createdLog = DirectDisposalLogModel.fromJson(disposalData);
         _logs.insert(0, createdLog);
         return createdLog;
@@ -191,6 +215,7 @@ class DirectDisposalRepository {
       paymentMethod: 'CASH',
       paymentStatus: 'PAID',
       formattedDate: DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now()),
+      recordedBy: username.isNotEmpty ? username : null,
     );
     _logs.insert(0, fallbackLog);
     return fallbackLog;
@@ -200,3 +225,5 @@ class DirectDisposalRepository {
     _logs.insert(0, log);
   }
 }
+
+

@@ -342,6 +342,9 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
       // Animate camera to fit markers
       if (_pickupStops.isNotEmpty) {
         _zoomToFitMarkers();
+        _enrichPickupDetails(selectedIdx).then((_) {
+          _enrichAllPickupsDetails();
+        });
       }
     } catch (e, stack) {
       if (!mounted) return;
@@ -359,6 +362,64 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
         _isLoading = false;
         _errorMessage = msg;
       });
+    }
+  }
+
+  /// Fetches additional details for a specific stop (e.g. user_phone, user_name)
+  /// using GET /api/pickup-details/?pickup_id=$pickupId
+  Future<void> _enrichPickupDetails(int stopIndex) async {
+    if (stopIndex < 0 || stopIndex >= _pickupStops.length) return;
+    final stop = _pickupStops[stopIndex];
+    final pickupId = (stop['pickup_id'] as num?)?.toInt() ??
+        (stop['pickupId'] as num?)?.toInt() ??
+        0;
+    if (pickupId <= 0) return;
+
+    try {
+      final res = await _repository.fetchPickupDetails(pickupId: pickupId);
+      if (res != null && mounted) {
+        final details = res['pickup_details'] as Map<String, dynamic>?;
+        if (details != null && stopIndex < _pickupStops.length) {
+          final userPhone = details['user_phone']?.toString() ??
+              details['contact_number']?.toString() ??
+              details['phone']?.toString();
+          final userName = details['user_name']?.toString() ??
+              details['name']?.toString();
+          final userEmail = details['user_email']?.toString() ??
+              details['email']?.toString();
+
+          setState(() {
+            if (userPhone != null &&
+                userPhone.isNotEmpty &&
+                userPhone.toLowerCase() != 'null') {
+              _pickupStops[stopIndex]['contact_number'] = userPhone;
+              _pickupStops[stopIndex]['phone'] = userPhone;
+            }
+            if (userName != null && userName.isNotEmpty) {
+              _pickupStops[stopIndex]['name'] = userName;
+            }
+            if (userEmail != null && userEmail.isNotEmpty) {
+              _pickupStops[stopIndex]['email'] = userEmail;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error enriching pickup details for stop $stopIndex: $e');
+    }
+  }
+
+  /// Lazily fetches details for all stops in the route that lack contact details
+  Future<void> _enrichAllPickupsDetails() async {
+    for (int i = 0; i < _pickupStops.length; i++) {
+      if (!mounted) return;
+      final currentPhone = _pickupStops[i]['contact_number']?.toString() ??
+          _pickupStops[i]['phone']?.toString();
+      if (currentPhone == null ||
+          currentPhone.isEmpty ||
+          currentPhone.toLowerCase() == 'null') {
+        await _enrichPickupDetails(i);
+      }
     }
   }
 
@@ -449,6 +510,7 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
               _routePoints = [];
             });
             _fetchRoadRoute();
+            _enrichPickupDetails(i);
           },
         ),
       );
@@ -946,7 +1008,8 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
         _currentStopIndex = nextIdx;
         _pickupStops[_currentStopIndex]['isNext'] = true;
         final nextStatus =
-            (_pickupStops[_currentStopIndex]['status'] as String? ?? '').toLowerCase();
+            (_pickupStops[_currentStopIndex]['status'] as String? ?? '')
+                .toLowerCase();
         _hasArrived = nextStatus == 'arrived';
       } else {
         // All stops completed
@@ -959,6 +1022,7 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
       }
       _routePoints = [];
     });
+    _enrichPickupDetails(_currentStopIndex);
 
     _zoomToFitMarkers();
     _fetchRoadRoute();
@@ -1501,13 +1565,16 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
                         for (int k = 0; k < _pickupStops.length; k++) {
                           _pickupStops[k]['isNext'] = k == idx;
                         }
-                        final sStatus = (_pickupStops[idx]['status'] as String? ?? '').toLowerCase();
+                        final sStatus =
+                            (_pickupStops[idx]['status'] as String? ?? '')
+                                .toLowerCase();
                         _hasArrived = sStatus == 'arrived';
                         _isNavigating = false;
                       });
                       Navigator.pop(ctx);
                       _zoomToFitMarkers();
                       _fetchRoadRoute();
+                      _enrichPickupDetails(idx);
                     },
                   );
                 },
@@ -1597,7 +1664,8 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
 
   Widget _buildNextPickupCard() {
     if (_pickupStops.isEmpty) return const SizedBox.shrink();
-
+    print("pickups");
+    print(_pickupStops);
     final title = (_currentStop['title'] as String?)?.isNotEmpty == true
         ? (_currentStop['title'] as String)
         : 'Main Road';
@@ -2330,9 +2398,22 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
   }
 
   Future<void> _handleContactDisposer() async {
-    final rawPhone = _currentStop['contact_number']?.toString() ??
+    var rawPhone = _currentStop['contact_number']?.toString() ??
         _currentStop['phone']?.toString();
-    final phone = (rawPhone ?? '').trim();
+    var phone = (rawPhone ?? '').trim();
+
+    // If phone is missing, try fetching details on the fly
+    if (phone.isEmpty || phone.toLowerCase() == 'null') {
+      final pickupId = (_currentStop['pickup_id'] as num?)?.toInt() ??
+          (_currentStop['pickupId'] as num?)?.toInt() ??
+          0;
+      if (pickupId > 0) {
+        await _enrichPickupDetails(_currentStopIndex);
+        rawPhone = _currentStop['contact_number']?.toString() ??
+            _currentStop['phone']?.toString();
+        phone = (rawPhone ?? '').trim();
+      }
+    }
 
     if (phone.isEmpty || phone.toLowerCase() == 'null') {
       if (mounted) {
@@ -2383,6 +2464,7 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
             });
             _zoomToFitMarkers();
             _fetchRoadRoute();
+            _enrichPickupDetails(index);
           },
           borderRadius: BorderRadius.circular(14),
           child: Container(
@@ -2422,7 +2504,9 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
                           ? Icons.check
                           : (isArrived
                               ? Icons.pin_drop_rounded
-                              : (isNext ? Icons.location_on : Icons.home_rounded)),
+                              : (isNext
+                                  ? Icons.location_on
+                                  : Icons.home_rounded)),
                       size: 20,
                       color: isCompleted
                           ? const Color(0xFF16A34A)

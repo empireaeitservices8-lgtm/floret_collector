@@ -160,9 +160,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFF1F5F9)),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: TextField(
                         controller: _searchController,
@@ -198,6 +198,8 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                                 )
                               : null,
                           border: InputBorder.none,
+                          filled: true,
+                          fillColor: Colors.white,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 14,

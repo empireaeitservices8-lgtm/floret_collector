@@ -324,12 +324,12 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
           Container(
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: vm.nameError != null
                     ? const Color(0xFFEF4444)
-                    : const Color(0xFFF1F5F9),
+                    : const Color(0xFFE2E8F0),
                 width: 1,
               ),
             ),
@@ -354,6 +354,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                   size: 20,
                 ),
                 border: InputBorder.none,
+                filled: true,
+                fillColor: Colors.white,
                 contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
             ),
@@ -388,12 +390,12 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
           Container(
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: vm.phoneError != null
                     ? const Color(0xFFEF4444)
-                    : const Color(0xFFF1F5F9),
+                    : const Color(0xFFE2E8F0),
                 width: 1,
               ),
             ),
@@ -419,6 +421,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                   size: 20,
                 ),
                 border: InputBorder.none,
+                filled: true,
+                fillColor: Colors.white,
                 contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
             ),
@@ -453,12 +457,12 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
           Container(
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: vm.addressError != null
                     ? const Color(0xFFEF4444)
-                    : const Color(0xFFF1F5F9),
+                    : const Color(0xFFE2E8F0),
                 width: 1,
               ),
             ),
@@ -483,6 +487,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                   size: 20,
                 ),
                 border: InputBorder.none,
+                filled: true,
+                fillColor: Colors.white,
                 contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
             ),
@@ -629,9 +635,9 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
           Container(
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: TextField(
               controller: _descController,
@@ -654,6 +660,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                   size: 20,
                 ),
                 border: InputBorder.none,
+                filled: true,
+                fillColor: Colors.white,
                 contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
             ),
@@ -721,6 +729,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                             fontWeight: FontWeight.w500,
                           ),
                           border: InputBorder.none,
+                filled: true,
+                fillColor: Colors.white,
                           contentPadding:
                               EdgeInsets.symmetric(horizontal: 10, vertical: 14),
                         ),
@@ -796,6 +806,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                             ),
                           ),
                           border: InputBorder.none,
+                filled: true,
+                fillColor: Colors.white,
                           contentPadding:
                               EdgeInsets.symmetric(horizontal: 10, vertical: 14),
                         ),
@@ -943,9 +955,9 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Column(
               children: [
@@ -1132,9 +1144,9 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
           child: Container(
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: TextField(
               controller: _searchController,
@@ -1170,6 +1182,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                       )
                     : null,
                 border: InputBorder.none,
+                filled: true,
+                fillColor: Colors.white,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),

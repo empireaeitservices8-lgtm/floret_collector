@@ -510,7 +510,7 @@ class _MarkCompletedWithWarningScreenState
                                   vertical: 14,
                                 ),
                                 filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
+                                fillColor: Colors.white,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
@@ -687,7 +687,7 @@ class _MarkCompletedWithWarningScreenState
                         ),
                         contentPadding: const EdgeInsets.all(16),
                         filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
+                        fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(

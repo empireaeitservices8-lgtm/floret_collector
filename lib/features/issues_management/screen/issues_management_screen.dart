@@ -680,7 +680,7 @@ class _IssuesManagementScreenState extends State<IssuesManagementScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: const Color(0xFFE2E8F0),
@@ -703,6 +703,8 @@ class _IssuesManagementScreenState extends State<IssuesManagementScreen> {
                                     fontWeight: FontWeight.w400,
                                   ),
                                   border: InputBorder.none,
+                                  filled: true,
+                                  fillColor: Colors.white,
                                   contentPadding: EdgeInsets.all(14),
                                 ),
                               ),

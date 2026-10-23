@@ -608,11 +608,13 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF1E293B),
                   ),
-                  // decoration: const InputDecoration(
-                  //   border: InputBorder.none,
-                  //   isDense: true,
-                  //   contentPadding: EdgeInsets.zero,
-                  // ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    fillColor: Colors.white,
+                    filled: true,
+                  ),
                 ),
               ),
               const SizedBox(

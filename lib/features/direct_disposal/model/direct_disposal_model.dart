@@ -16,6 +16,7 @@ class DirectDisposalLogModel {
   final String paymentMethod;
   final String paymentStatus;
   final String formattedDate;
+  final String? recordedBy;
 
   const DirectDisposalLogModel({
     required this.id,
@@ -33,6 +34,7 @@ class DirectDisposalLogModel {
     required this.paymentMethod,
     required this.paymentStatus,
     required this.formattedDate,
+    this.recordedBy,
   });
 
   bool get isPaid => paymentStatus.toUpperCase() == 'PAID';
@@ -99,6 +101,7 @@ class DirectDisposalLogModel {
       paymentStatus:
           (json['payment_status'] ?? 'PENDING').toString().toUpperCase(),
       formattedDate: formattedDate,
+      recordedBy: json['recorded_by']?.toString(),
     );
   }
 }
