@@ -245,14 +245,6 @@ class DirectDisposalViewModel extends ViewModel {
     if (mappedWasteType.isEmpty) {
       mappedWasteType = 'plastic';
     }
-    print(_customerName.trim());
-    print(_phone.trim());
-    print(_customerAddress.trim());
-    print(mappedDisposalType);
-    print(mappedWasteType);
-    print(_wasteDescription.trim());
-    print(_weight);
-    print(_rate);
 
     await _repository.recordDisposal(
       customerName: _customerName.trim(),
@@ -300,4 +292,3 @@ class DirectDisposalViewModel extends ViewModel {
     notifyListeners();
   }
 }
-

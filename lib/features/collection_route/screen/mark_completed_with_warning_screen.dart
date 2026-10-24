@@ -674,6 +674,10 @@ class _MarkCompletedWithWarningScreenState
                     const SizedBox(height: 10),
                     TextField(
                       controller: _descriptionController,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 14.5,
+                      ),
                       onChanged: (_) => setState(() {}),
                       minLines: 3,
                       maxLines: 5,
@@ -722,7 +726,8 @@ class _MarkCompletedWithWarningScreenState
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _isFormValid && !_isSubmitting ? _handleSubmit : null,
+                  onPressed:
+                      _isFormValid && !_isSubmitting ? _handleSubmit : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0F172A),
                     disabledBackgroundColor: const Color(0xFFE2E8F0),

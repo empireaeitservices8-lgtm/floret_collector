@@ -99,7 +99,7 @@ class DirectDisposalLogModel {
       paymentMethod:
           (json['payment_method'] ?? 'CASH').toString().toUpperCase(),
       paymentStatus:
-          (json['payment_status'] ?? 'PENDING').toString().toUpperCase(),
+          (json['payment_status'] ?? 'Paid').toString().toUpperCase(),
       formattedDate: formattedDate,
       recordedBy: json['recorded_by']?.toString(),
     );

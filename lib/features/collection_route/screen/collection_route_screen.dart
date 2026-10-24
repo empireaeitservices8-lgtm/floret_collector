@@ -383,10 +383,10 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
           final userPhone = details['user_phone']?.toString() ??
               details['contact_number']?.toString() ??
               details['phone']?.toString();
-          final userName = details['user_name']?.toString() ??
-              details['name']?.toString();
-          final userEmail = details['user_email']?.toString() ??
-              details['email']?.toString();
+          final userName =
+              details['user_name']?.toString() ?? details['name']?.toString();
+          final userEmail =
+              details['user_email']?.toString() ?? details['email']?.toString();
 
           setState(() {
             if (userPhone != null &&
@@ -1664,8 +1664,8 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
 
   Widget _buildNextPickupCard() {
     if (_pickupStops.isEmpty) return const SizedBox.shrink();
-    print("pickups");
-    print(_pickupStops);
+    // print("pickups");
+    // print(_pickupStops);
     final title = (_currentStop['title'] as String?)?.isNotEmpty == true
         ? (_currentStop['title'] as String)
         : 'Main Road';
