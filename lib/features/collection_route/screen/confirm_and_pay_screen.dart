@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:floret_collector/features/collection_route/repository/ward_route_repository.dart';
 import 'package:floret_collector/core/storage/collection_metrics_storage.dart';
 import 'payment_receipt_screen.dart';
-import 'available_coupons_vouchers_screen.dart';
+
 import 'razorpay_qr_screen.dart';
 
 class ConfirmAndPayScreen extends StatefulWidget {
@@ -44,9 +44,9 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
   String _wasteType = '';
   String _localBody = '';
   double _disposalRate = 42.00;
-  double _walletBalance = 0.0;
-  List<Map<String, dynamic>> _vouchers = [];
-  Map<String, dynamic>? _selectedVoucher;
+  // double _walletBalance = 0.0;
+  // List<Map<String, dynamic>> _vouchers = [];
+  // Map<String, dynamic>? _selectedVoucher;
 
   int _bagQuantity = 0;
   final double _bagPrice = 7.00;
@@ -107,16 +107,16 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
           }
         }
 
-        final walletData = data['wallet_data'] as Map<String, dynamic>?;
-        if (walletData != null) {
-          _walletBalance =
-              (walletData['wallet_balance'] as num?)?.toDouble() ?? 0.0;
-        }
+        // final walletData = data['wallet_data'] as Map<String, dynamic>?;
+        // if (walletData != null) {
+        //   _walletBalance =
+        //       (walletData['wallet_balance'] as num?)?.toDouble() ?? 0.0;
+        // }
 
-        final rawVouchers = data['swipe_vouchers'] as List<dynamic>?;
-        if (rawVouchers != null) {
-          _vouchers = rawVouchers.whereType<Map<String, dynamic>>().toList();
-        }
+        // final rawVouchers = data['swipe_vouchers'] as List<dynamic>?;
+        // if (rawVouchers != null) {
+        //   _vouchers = rawVouchers.whereType<Map<String, dynamic>>().toList();
+        // }
 
         // Fetch disposal rate from local_body if available
         final localBodyId = (data['local_body_id'] as num?)?.toInt() ?? 43;
@@ -316,11 +316,11 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
             _buildLocalbodyCard(),
             const SizedBox(height: 10),
             _buildWasteWeightInputCard(),
-            const SizedBox(height: 10),
-            _buildWalletCard(),
-            const SizedBox(height: 10),
-            _buildCouponsCard(),
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
+            //   _buildWalletCard(),
+            //   const SizedBox(height: 10),
+            // //  _buildCouponsCard(),
+            //   const SizedBox(height: 18),
 
             // Section 3: Payment Option
             _buildSectionHeader('3. Payment Option'),
@@ -446,28 +446,28 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.edit_outlined, size: 14, color: Color(0xFF1E293B)),
-                SizedBox(width: 4),
-                Text(
-                  'Edit',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // Container(
+          //   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          //   decoration: BoxDecoration(
+          //     border: Border.all(color: const Color(0xFFE2E8F0)),
+          //     borderRadius: BorderRadius.circular(8),
+          //   ),
+          //   child: Row(
+          //     mainAxisSize: MainAxisSize.min,
+          //     children: const [
+          //       Icon(Icons.edit_outlined, size: 14, color: Color(0xFF1E293B)),
+          //       SizedBox(width: 4),
+          //       Text(
+          //         'Edit',
+          //         style: TextStyle(
+          //           fontSize: 13,
+          //           fontWeight: FontWeight.w700,
+          //           color: Color(0xFF1E293B),
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ),
         ],
       ),
     );
@@ -635,198 +635,198 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
     );
   }
 
-  Widget _buildWalletCard() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF1F5F9),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.account_balance_wallet_outlined,
-              size: 18,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Redeem Wallet Balance',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Available Balance: ₹${_walletBalance.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: _walletBalance > 0
-                        ? const Color(0xFF16A34A)
-                        : const Color(0xFFEF4444),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: false,
-            onChanged: null,
-            // value: _redeemWallet,
-            // activeThumbColor: const Color(0xFF1E293B),
-            // onChanged: (val) => setState(() => _redeemWallet = val),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildWalletCard() {
+  //   return Container(
+  //     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(14),
+  //       border: Border.all(color: const Color(0xFFE2E8F0)),
+  //     ),
+  //     child: Row(
+  //       children: [
+  //         Container(
+  //           width: 36,
+  //           height: 36,
+  //           decoration: const BoxDecoration(
+  //             color: Color(0xFFF1F5F9),
+  //             shape: BoxShape.circle,
+  //           ),
+  //           child: const Icon(
+  //             Icons.account_balance_wallet_outlined,
+  //             size: 18,
+  //             color: Color(0xFF1E293B),
+  //           ),
+  //         ),
+  //         const SizedBox(width: 10),
+  //         Expanded(
+  //           child: Column(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: [
+  //               const Text(
+  //                 'Redeem Wallet Balance',
+  //                 style: TextStyle(
+  //                   fontSize: 14,
+  //                   fontWeight: FontWeight.w700,
+  //                   color: Color(0xFF1E293B),
+  //                 ),
+  //               ),
+  //               const SizedBox(height: 2),
+  //               Text(
+  //                 'Available Balance: ₹${_walletBalance.toStringAsFixed(2)}',
+  //                 style: TextStyle(
+  //                   fontSize: 12,
+  //                   fontWeight: FontWeight.w500,
+  //                   color: _walletBalance > 0
+  //                       ? const Color(0xFF16A34A)
+  //                       : const Color(0xFFEF4444),
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //         Switch(
+  //           value: false,
+  //           onChanged: null,
+  //           // value: _redeemWallet,
+  //           // activeThumbColor: const Color(0xFF1E293B),
+  //           // onChanged: (val) => setState(() => _redeemWallet = val),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
-  Future<void> _openCouponsScreen() async {
-    final selected = await Navigator.pushNamed(
-      context,
-      AvailableCouponsVouchersScreen.routeName,
-      arguments: {
-        'userPoints': _walletBalance.toInt(),
-        'vouchers': _vouchers,
-      },
-    );
-    if (selected != null && selected is Map<String, dynamic> && mounted) {
-      setState(() {
-        _selectedVoucher = selected;
-        _applyCoupon = true;
-      });
-    }
-  }
+  // Future<void> _openCouponsScreen() async {
+  //   final selected = await Navigator.pushNamed(
+  //     context,
+  //     AvailableCouponsVouchersScreen.routeName,
+  //     arguments: {
+  //       'userPoints': _walletBalance.toInt(),
+  //       'vouchers': _vouchers,
+  //     },
+  //   );
+  //   if (selected != null && selected is Map<String, dynamic> && mounted) {
+  //     setState(() {
+  //       _selectedVoucher = selected;
+  //       _applyCoupon = true;
+  //     });
+  //   }
+  // }
 
-  Widget _buildCouponsCard() {
-    final activeVoucher =
-        _selectedVoucher ?? (_vouchers.isNotEmpty ? _vouchers.first : null);
-    final voucherCode = activeVoucher?['code']?.toString() ??
-        activeVoucher?['voucher_code']?.toString() ??
-        'FLT-250';
-    final voucherStatus = activeVoucher?['status']?.toString() ?? 'INACTIVE';
+  // Widget _buildCouponsCard() {
+  //   final activeVoucher =
+  //       _selectedVoucher ?? (_vouchers.isNotEmpty ? _vouchers.first : null);
+  //   final voucherCode = activeVoucher?['code']?.toString() ??
+  //       activeVoucher?['voucher_code']?.toString() ??
+  //       'FLT-250';
+  //   final voucherStatus = activeVoucher?['status']?.toString() ?? 'INACTIVE';
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: _openCouponsScreen,
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEFF6FF),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.confirmation_num_outlined,
-                    size: 18,
-                    color: Color(0xFF2563EB),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Text(
-                    'Coupons & Vouchers',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                ),
-                const Text(
-                  'View all coupons >',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF2563EB),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF334155),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    voucherCode,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEE2E2),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    voucherStatus,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFFDC2626),
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Switch(
-                  value: false,
-                  onChanged: null,
-                  // value: _applyCoupon,
-                  // activeThumbColor: const Color(0xFF1E293B),
-                  // onChanged: (val) => setState(() => _applyCoupon = val),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  //   return Container(
+  //     padding: const EdgeInsets.all(14),
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(14),
+  //       border: Border.all(color: const Color(0xFFE2E8F0)),
+  //     ),
+  //     child: Column(
+  //       children: [
+  //         InkWell(
+  //           onTap: _openCouponsScreen,
+  //           child: Row(
+  //             children: [
+  //               Container(
+  //                 width: 36,
+  //                 height: 36,
+  //                 decoration: const BoxDecoration(
+  //                   color: Color(0xFFEFF6FF),
+  //                   shape: BoxShape.circle,
+  //                 ),
+  //                 child: const Icon(
+  //                   Icons.confirmation_num_outlined,
+  //                   size: 18,
+  //                   color: Color(0xFF2563EB),
+  //                 ),
+  //               ),
+  //               const SizedBox(width: 10),
+  //               const Expanded(
+  //                 child: Text(
+  //                   'Coupons & Vouchers',
+  //                   style: TextStyle(
+  //                     fontSize: 14,
+  //                     fontWeight: FontWeight.w700,
+  //                     color: Color(0xFF1E293B),
+  //                   ),
+  //                 ),
+  //               ),
+  //               const Text(
+  //                 'View all coupons >',
+  //                 style: TextStyle(
+  //                   fontSize: 13,
+  //                   fontWeight: FontWeight.w700,
+  //                   color: Color(0xFF2563EB),
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //         const SizedBox(height: 12),
+  //         Container(
+  //           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+  //           decoration: BoxDecoration(
+  //             color: const Color(0xFFF8FAFC),
+  //             borderRadius: BorderRadius.circular(10),
+  //           ),
+  //           child: Row(
+  //             children: [
+  //               Container(
+  //                 padding:
+  //                     const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+  //                 decoration: BoxDecoration(
+  //                   color: const Color(0xFF334155),
+  //                   borderRadius: BorderRadius.circular(6),
+  //                 ),
+  //                 child: Text(
+  //                   voucherCode,
+  //                   style: const TextStyle(
+  //                     fontSize: 12,
+  //                     fontWeight: FontWeight.w700,
+  //                     color: Colors.white,
+  //                   ),
+  //                 ),
+  //               ),
+  //               const SizedBox(width: 6),
+  //               Container(
+  //                 padding:
+  //                     const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+  //                 decoration: BoxDecoration(
+  //                   color: const Color(0xFFFEE2E2),
+  //                   borderRadius: BorderRadius.circular(6),
+  //                 ),
+  //                 child: Text(
+  //                   voucherStatus,
+  //                   style: const TextStyle(
+  //                     fontSize: 11,
+  //                     fontWeight: FontWeight.w700,
+  //                     color: Color(0xFFDC2626),
+  //                   ),
+  //                 ),
+  //               ),
+  //               const Spacer(),
+  //               Switch(
+  //                 value: false,
+  //                 onChanged: null,
+  //                 // value: _applyCoupon,
+  //                 // activeThumbColor: const Color(0xFF1E293B),
+  //                 // onChanged: (val) => setState(() => _applyCoupon = val),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildPaymentOptions() {
     final options = [
