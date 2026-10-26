@@ -66,9 +66,8 @@ class CollectionHistoryRepository {
     final effectiveDateFrom = dateFrom?.trim().isNotEmpty == true
         ? dateFrom!.trim()
         : defaultDateFrom;
-    final effectiveDateTo = dateTo?.trim().isNotEmpty == true
-        ? dateTo!.trim()
-        : defaultDateTo;
+    final effectiveDateTo =
+        dateTo?.trim().isNotEmpty == true ? dateTo!.trim() : defaultDateTo;
 
     final queryParameters = <String, dynamic>{
       'collector_id': resolvedCollectorId,
@@ -108,8 +107,8 @@ class CollectionHistoryRepository {
         // ignore: avoid_print
         print(formattedJson);
       } catch (_) {
-        // ignore: avoid_print
-        print(response.data);
+        // ignore: avoid_print₹
+        // print(response.data);
       }
 
       if (response.data is Map) {

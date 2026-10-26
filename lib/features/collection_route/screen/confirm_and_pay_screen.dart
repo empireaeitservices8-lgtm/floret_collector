@@ -16,16 +16,16 @@ class ConfirmAndPayScreen extends StatefulWidget {
   final String address;
   final String wasteType;
   final String localBody;
-  final double disposalRate;
+  final double? disposalRate;
 
   const ConfirmAndPayScreen({
     super.key,
     this.pickupId = 0,
     this.collectorId = 0,
-    this.address = 'Main Road',
-    this.wasteType = 'Scheduled pickup',
-    this.localBody = 'Nedumangadu Municipality',
-    this.disposalRate = 42.00,
+    this.address = '',
+    this.wasteType = '',
+    this.localBody = '',
+    this.disposalRate,
   });
 
   @override
@@ -43,7 +43,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
   String _userPhone = '';
   String _wasteType = '';
   String _localBody = '';
-  double _disposalRate = 42.00;
+  double _disposalRate = 0.00;
   // double _walletBalance = 0.0;
   // List<Map<String, dynamic>> _vouchers = [];
   // Map<String, dynamic>? _selectedVoucher;
@@ -66,7 +66,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
     _address = widget.address;
     _wasteType = widget.wasteType;
     _localBody = widget.localBody;
-    _disposalRate = widget.disposalRate;
+    _disposalRate = widget.disposalRate ?? 0.0;
 
     _weightController.addListener(() {
       final val = double.tryParse(_weightController.text.trim()) ?? 0.0;
@@ -90,6 +90,8 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
       final data = await _repository.fetchConfirmAndPayData(
         pickupId: widget.pickupId,
       );
+      // print("dta");
+      // print(data);
       if (data != null && mounted) {
         final pickupData = data['pickup_data'] as Map<String, dynamic>?;
         if (pickupData != null) {
@@ -119,9 +121,9 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
         // }
 
         // Fetch disposal rate from local_body if available
-        final localBodyId = (data['local_body_id'] as num?)?.toInt() ?? 43;
+        final localBodyId = (data['local_body_id'] as num?)?.toInt();
         final dRate =
-            await _repository.fetchDisposalRate(localBodyId: localBodyId);
+            await _repository.fetchDisposalRate(localBodyId: localBodyId!);
         if (dRate != null && dRate > 0) {
           _disposalRate = dRate;
         }

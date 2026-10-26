@@ -30,8 +30,8 @@ class LoginRepositoryImpl implements LoginRepository {
     if (response.token.isEmpty) {
       throw Exception('Login response did not contain a token');
     }
-    print("Toke");
-    print(response.token);
+    // print("Toke");
+    // print(response.token);
     await tokenStorage.saveToken(response.token);
     debugPrint("api/login/ response:${response.toString()}");
 

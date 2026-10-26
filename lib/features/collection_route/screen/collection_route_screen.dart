@@ -2307,7 +2307,7 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
           'collectorId': _collectorId,
           'address': _currentStop['title'] ?? '',
           'wasteType': _currentStop['type'] ?? '',
-          'localBody': _currentStop['localBody'] ?? 'Nedumangadu Municipality',
+          'localBody': _currentStop['localBody'] ?? '',
         },
       );
 
@@ -2380,11 +2380,13 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
 
     try {
       if (pickupId > 0) {
-        await _repository.updatePickupStatus(
-          pickupId: pickupId,
-          status: 'rescheduled',
-          reason: 'Rescheduled to $formatted',
-        );
+        await _repository.reschedulePickup(
+            pickupId: pickupId, newDate: formatted);
+        // await _repository.updatePickupStatus(
+        //   pickupId: pickupId,
+        //   status: 'rescheduled',
+        //   reason: 'Rescheduled to $formatted',
+        // );
       }
       if (mounted) {
         _showSnack('Pickup rescheduled to $formatted');
@@ -2408,6 +2410,8 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
           (_currentStop['pickupId'] as num?)?.toInt() ??
           0;
       if (pickupId > 0) {
+        // print("current");
+        // print(_currentStop);
         await _enrichPickupDetails(_currentStopIndex);
         rawPhone = _currentStop['contact_number']?.toString() ??
             _currentStop['phone']?.toString();

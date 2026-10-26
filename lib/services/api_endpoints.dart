@@ -45,7 +45,8 @@ class APIEndPoints {
   static const String startTrackingRoute = '/api/start-tracking/';
   static const String confirmRouteStart = '/api/confirm-route-start/';
   static const String startNavigate = '/api/start-navigate/';
-  static const String updateCollectorLocation = '/api/update-collector-location/';
+  static const String updateCollectorLocation =
+      '/api/update-collector-location/';
   static const String confirmReached = '/api/confirm-reached/';
   static const String confirmAndPayData = '/api/confirm-and-pay-data/';
   static const String disposalRates = '/api/disposal-rates/';
@@ -56,4 +57,7 @@ class APIEndPoints {
   static const String collectPickup = '/api/collect-pickup/';
   static const String uploadWastePhoto = '/api/upload-waste-photo/';
   static const String razorpayGenerateQr = '/api/razorpay/generate-qr/';
+
+  //reshedule
+  static const String reschedule = '/api/reschedule-pickup/';
 }

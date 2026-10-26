@@ -1,6 +1,7 @@
 import 'package:floret_collector/features/home/model/location_pickup_model.dart';
 import 'package:floret_collector/features/home/screen/widgets/home_shimmer.dart';
 import 'package:floret_collector/features/home/screen/widgets/metric_card.dart';
+import 'package:floret_collector/features/home/screen/widgets/remaining_bag_alert.dart';
 import 'package:floret_collector/features/home/screen/widgets/start_route_bottom_sheet.dart';
 import 'package:floret_collector/features/collection_route/screen/collection_route_screen.dart';
 import 'package:flutter/material.dart';
@@ -104,12 +105,17 @@ class HomeScreen extends StatelessWidget {
                         children: [
                           // Remaining Covers
                           Expanded(
-                            child: buildMetricCard(
-                              iconBg: const Color(0xFFFEF3C7),
-                              iconColor: const Color(0xFFD97706),
-                              icon: Icons.shopping_bag_rounded,
-                              value: '${vm.remainingBags}/${vm.assignedBags}',
-                              label: 'Remaining Covers',
+                            child: GestureDetector(
+                              onTap: () async {
+                                await showBagDialog(context);
+                              },
+                              child: buildMetricCard(
+                                iconBg: const Color(0xFFFEF3C7),
+                                iconColor: const Color(0xFFD97706),
+                                icon: Icons.shopping_bag_rounded,
+                                value: '${vm.remainingBags}/${vm.assignedBags}',
+                                label: 'Remaining Covers',
+                              ),
                             ),
                           ),
                           const SizedBox(width: 10),

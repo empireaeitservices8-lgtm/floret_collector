@@ -56,7 +56,8 @@ class WardPickup {
     return WardPickup(
       id: rawId,
       pickupId: rawPickupId,
-      name: (json['user_name']?.toString() ?? json['name']?.toString() ?? '').trim(),
+      name: (json['user_name']?.toString() ?? json['name']?.toString() ?? '')
+          .trim(),
       address: (json['address']?.toString() ?? '').trim(),
       pickupDate: json['pickup_date']?.toString() ?? '',
       pickupTimeSlot: json['pickup_time_slot']?.toString() ?? '',
@@ -323,8 +324,7 @@ class WardRouteRepository {
     try {
       final dio = await _client();
       final url = '${APIEndPoints.confirmAndPayData}?pickup_id=$pickupId';
-      debugPrint(
-          'GET confirm-and-pay-data from ${APIEndPoints.baseUrl}$url');
+      debugPrint('GET confirm-and-pay-data from ${APIEndPoints.baseUrl}$url');
       final res = await dio.get(url);
       debugPrint(
           'Fetch Confirm and Pay Screen Data Status: ${res.statusCode}, Body: ${res.data}');
@@ -350,7 +350,9 @@ class WardRouteRepository {
       final res = await dio.get(url);
       debugPrint(
           'Fetch Disposal Rates Response Status: ${res.statusCode}, Body: ${res.data}');
-      if (res.statusCode == 200 && res.data is List && (res.data as List).isNotEmpty) {
+      if (res.statusCode == 200 &&
+          res.data is List &&
+          (res.data as List).isNotEmpty) {
         final first = (res.data as List).first;
         if (first is Map<String, dynamic>) {
           return double.tryParse(first['rate_per_kg']?.toString() ?? '');
@@ -403,8 +405,7 @@ class WardRouteRepository {
       };
       debugPrint(
           'POST generate-qr to ${APIEndPoints.baseUrl}${APIEndPoints.razorpayGenerateQr} with body: $body');
-      final res =
-          await dio.post(APIEndPoints.razorpayGenerateQr, data: body);
+      final res = await dio.post(APIEndPoints.razorpayGenerateQr, data: body);
       debugPrint(
           'Generate QR Response Status: ${res.statusCode}, Body: ${res.data}');
       if ((res.statusCode == 200 || res.statusCode == 201) &&
@@ -539,6 +540,7 @@ class WardRouteRepository {
         'subject': subject,
         'description': description,
       };
+//
       debugPrint(
           'POST report issue to ${APIEndPoints.baseUrl}${APIEndPoints.reportIssue} with body: $body');
       final res = await dio.post(APIEndPoints.reportIssue, data: body);
@@ -594,6 +596,42 @@ class WardRouteRepository {
         errorMsg = errorData;
       }
       throw Exception(errorMsg);
+    } catch (e) {
+      debugPrint('Error uploading photo to server: $e');
+      rethrow;
+    }
+  }
+
+  //reshedule
+  Future<Map<String, dynamic>?> reschedulePickup({
+    required int pickupId,
+    required String newDate,
+  }) async {
+    try {
+      final dio = await _client();
+
+      final body = {
+        'pickup_id': pickupId,
+        "new_date": newDate,
+        "new_time_slot": "9:00 AM – 12:00 PM",
+        "reason": "Door closed"
+      };
+      debugPrint(
+          'POST update-pickup-status to ${APIEndPoints.baseUrl}${APIEndPoints.reschedule} with body: $body');
+      final res = await dio.post(APIEndPoints.reschedule, data: body);
+      debugPrint(
+          'Status Update Response Status: ${res.statusCode}, Body: ${res.data}');
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        if (res.data is Map<String, dynamic>) {
+          return res.data as Map<String, dynamic>;
+        }
+        return {'message': 'Rescheduled successfully'};
+      }
+      return null;
+    } on DioException catch (e) {
+      debugPrint('Body: ${e.response?.data}');
+
+      throw Exception(e.message);
     } catch (e) {
       debugPrint('Error uploading photo to server: $e');
       rethrow;
