@@ -1,9 +1,10 @@
+import 'package:floret_collector/features/collection_history/model/collection_summary_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:floret_collector/core/di/injection.dart';
-import 'package:floret_collector/features/collection_history/model/collection_history_model.dart';
+import 'package:floret_collector/features/collection_history/model/collection_item_model.dart';
 import 'package:floret_collector/features/collection_history/repos/collection_history_repository.dart';
 import 'package:floret_collector/features/collection_history/viewmodel/collection_history_view_model.dart';
 import 'package:floret_collector/features/collection_history/screen/collection_history_screen.dart';

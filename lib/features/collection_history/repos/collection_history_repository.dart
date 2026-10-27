@@ -2,12 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:floret_collector/features/collection_history/model/collection_summary_model.dart';
 import 'package:intl/intl.dart';
 import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/core/storage/collector_details.dart';
 import 'package:floret_collector/services/api_client.dart';
 import 'package:floret_collector/services/api_endpoints.dart';
-import '../model/collection_history_model.dart';
+import '../model/collection_item_model.dart';
 
 class CollectionHistoryResult {
   final List<CollectionItemModel> items;
@@ -59,7 +60,10 @@ class CollectionHistoryRepository {
     }
 
     final now = DateTime.now();
-    final defaultDateTo = DateFormat('yyyy-MM-dd').format(now);
+    final defaultDateTo = DateFormat('yyyy-MM-dd').format(
+      now.add(const Duration(days: 1)),
+    );
+
     final defaultDateFrom =
         DateFormat('yyyy-MM-dd').format(DateTime(now.year, now.month - 1, 1));
 
@@ -72,7 +76,7 @@ class CollectionHistoryRepository {
     final queryParameters = <String, dynamic>{
       'collector_id': resolvedCollectorId,
       'date_from': effectiveDateFrom,
-      'date_to': effectiveDateTo,
+      'date_to': defaultDateTo,
     };
 
     if (wasteType != null &&
@@ -99,17 +103,11 @@ class CollectionHistoryRepository {
         APIEndPoints.collectorHistory,
         queryParameters: queryParameters,
       );
-
-      // Print response formatted like the API response
       try {
         const encoder = JsonEncoder.withIndent('  ');
         final formattedJson = encoder.convert(response.data);
-        // ignore: avoid_print
         print(formattedJson);
-      } catch (_) {
-        // ignore: avoid_print₹
-        // print(response.data);
-      }
+      } catch (_) {}
 
       if (response.data is Map) {
         final data = Map<String, dynamic>.from(response.data as Map);

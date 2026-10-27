@@ -131,8 +131,7 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
           // Tab 1: New Record
           Expanded(
             child: InkWell(
-              onTap: () =>
-                  vm.setSelectedTab(DirectDisposalTab.newRecord),
+              onTap: () => vm.setSelectedTab(DirectDisposalTab.newRecord),
               child: Column(
                 children: [
                   Padding(
@@ -152,9 +151,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                           'New Record',
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: isNewRecord
-                                ? FontWeight.w800
-                                : FontWeight.w600,
+                            fontWeight:
+                                isNewRecord ? FontWeight.w800 : FontWeight.w600,
                             color: isNewRecord
                                 ? const Color(0xFF0F172A)
                                 : const Color(0xFF64748B),
@@ -181,8 +179,7 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
           // Tab 2: Disposal Logs
           Expanded(
             child: InkWell(
-              onTap: () =>
-                  vm.setSelectedTab(DirectDisposalTab.disposalLogs),
+              onTap: () => vm.setSelectedTab(DirectDisposalTab.disposalLogs),
               child: Column(
                 children: [
                   Padding(
@@ -356,7 +353,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                 border: InputBorder.none,
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
             ),
           ),
@@ -423,7 +421,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                 border: InputBorder.none,
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
             ),
           ),
@@ -489,7 +488,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                 border: InputBorder.none,
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
             ),
           ),
@@ -662,7 +662,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                 border: InputBorder.none,
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
             ),
           ),
@@ -701,8 +702,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                       ),
                       child: TextField(
                         controller: _weightController,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         onChanged: (val) {
                           final parsed = double.tryParse(val) ?? 0.0;
                           vm.setWeight(parsed);
@@ -729,10 +730,10 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                             fontWeight: FontWeight.w500,
                           ),
                           border: InputBorder.none,
-                filled: true,
-                fillColor: Colors.white,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 14),
                         ),
                       ),
                     ),
@@ -778,8 +779,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                       ),
                       child: TextField(
                         controller: _rateController,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         onChanged: (val) {
                           final parsed = double.tryParse(val) ?? 0.0;
                           vm.setRate(parsed);
@@ -806,10 +807,10 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                             ),
                           ),
                           border: InputBorder.none,
-                filled: true,
-                fillColor: Colors.white,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 14),
                         ),
                       ),
                     ),
@@ -1294,13 +1295,15 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  item.paymentStatus.toUpperCase(),
+                  "PAID",
+                  // item.paymentStatus.toUpperCase(),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: isPaid
-                        ? const Color(0xFF15803D)
-                        : const Color(0xFF92400E),
+                    color: const Color(0xFF15803D),
+                    // color: isPaid
+                    //     ? const Color(0xFF15803D)
+                    //     : const Color(0xFF92400E),
                     letterSpacing: 0.3,
                   ),
                 ),

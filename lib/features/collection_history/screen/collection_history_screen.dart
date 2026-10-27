@@ -1,9 +1,10 @@
+import 'package:floret_collector/features/collection_history/model/collection_summary_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:floret_collector/core/di/injection.dart';
-import '../model/collection_history_model.dart';
+import '../model/collection_item_model.dart';
 import '../viewmodel/collection_history_view_model.dart';
 import 'collection_filter_bottom_sheet.dart';
 
@@ -46,7 +47,7 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
               final summary = vm.effectiveSummary;
 
               final history = vm.filteredHistory;
-              debugPrint(history.toString());
+              // debugPrint(history.toString());
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -103,7 +104,7 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
                             color: Color(0xFF0F172A),
                             size: 24,
                           ),
-                          tooltip: 'Refresh (Long press to test timeout)',
+                          tooltip: 'Refresh',
                         ),
                       ],
                     ),
@@ -396,9 +397,7 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
               ),
             ),
           ),
-
           const SizedBox(width: 10),
-
           // Filter Button with Badge
           Stack(
             clipBehavior: Clip.none,
@@ -838,30 +837,30 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
               ),
 
               // Rate
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Rate',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '₹${item.rate.toStringAsFixed(1)}/kg',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Expanded(
+              //   child: Column(
+              //     crossAxisAlignment: CrossAxisAlignment.start,
+              //     children: [
+              //       const Text(
+              //         'Rate',
+              //         style: TextStyle(
+              //           fontSize: 11,
+              //           color: Color(0xFF64748B),
+              //           fontWeight: FontWeight.w500,
+              //         ),
+              //       ),
+              //       const SizedBox(height: 4),
+              //       Text(
+              //         '₹${item.rate.toStringAsFixed(1)}/kg',
+              //         style: const TextStyle(
+              //           fontSize: 14,
+              //           fontWeight: FontWeight.w700,
+              //           color: Color(0xFF0F172A),
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
 
               // Amount
               Expanded(
@@ -900,7 +899,7 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                item.date,
+                item.date.split(' ')[0],
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,

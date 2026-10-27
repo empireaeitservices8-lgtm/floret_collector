@@ -52,7 +52,7 @@ class HomeScreen extends StatelessWidget {
 
               return RefreshIndicator(
                 onRefresh: () => vm.refresh(),
-                color: const Color(0xFF1E293B),
+                color: Colors.white,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 16),

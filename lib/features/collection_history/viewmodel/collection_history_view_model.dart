@@ -1,7 +1,8 @@
+import 'package:floret_collector/features/collection_history/model/collection_summary_model.dart';
 import 'package:intl/intl.dart';
 import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/providers/view_model.dart';
-import '../model/collection_history_model.dart';
+import '../model/collection_item_model.dart';
 import '../repos/collection_history_repository.dart';
 
 class CollectionHistoryViewModel extends ViewModel {

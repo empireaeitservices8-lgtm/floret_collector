@@ -60,7 +60,7 @@ class HomeViewModel extends ChangeNotifier {
   BagAssignmentModel? get bagAssignment => _bagAssignment;
   List<LocationPickupModel> get locations => List.unmodifiable(_locations);
 
-  // Daily collection metrics (prioritizes collection history from backend, falls back to local storage)
+  // Daily collection metrics
   double get todayWeight {
     if (_hasHistoryMetrics && _historyTodayWeight > 0) {
       return _historyTodayWeight;
@@ -98,7 +98,8 @@ class HomeViewModel extends ChangeNotifier {
     final collector = await _collectorLocalStorage.getCollector();
     debugPrint('Collector Details ${collector.toString()}');
 
-    final name = collector?['name']?.toString() ?? collector?['username']?.toString();
+    final name =
+        collector?['name']?.toString() ?? collector?['username']?.toString();
     _collectorName = (name != null && name.trim().isNotEmpty)
         ? name.trim()
         : await _collectorLocalStorage.getUsername();
@@ -226,7 +227,7 @@ class HomeViewModel extends ChangeNotifier {
     }).toList();
   }
 
-  // Status priority: arrived first (ready to collect!), in-progress/pending next, completed/picked last
+  // Status priority: arrived first
   int _statusOrder(String status) {
     switch (status.toLowerCase()) {
       case 'arrived':
@@ -245,24 +246,23 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  // Today's pickups from locations API — arrived first, completed last
+  // Today's pickups from locations API
   List<LocationPickupModel> get todayLocations {
     final list = _locations.where((loc) => loc.isToday).toList();
-    list.sort((a, b) => _statusOrder(a.status).compareTo(_statusOrder(b.status)));
+    list.sort(
+        (a, b) => _statusOrder(a.status).compareTo(_statusOrder(b.status)));
     return list;
   }
 
   // Pending pickups for today (includes arrived pickups awaiting collection)
   List<LocationPickupModel> get todayPendingLocations {
-    return todayLocations
-        .where((loc) {
-          final s = loc.status.toLowerCase();
-          return s == 'arrived' ||
-              s == 'pending' ||
-              s == 'in_progress' ||
-              s == 'in progress';
-        })
-        .toList();
+    return todayLocations.where((loc) {
+      final s = loc.status.toLowerCase();
+      return s == 'arrived' ||
+          s == 'pending' ||
+          s == 'in_progress' ||
+          s == 'in progress';
+    }).toList();
   }
 
   // First pickup to act on: arrived pickups are top priority, then pending
@@ -291,7 +291,8 @@ class HomeViewModel extends ChangeNotifier {
       if (loc.localBody.isNotEmpty) return loc.localBody;
     }
     if (_bagAssignment != null) {
-      if (_bagAssignment!.localBody.isNotEmpty && _bagAssignment!.district.isNotEmpty) {
+      if (_bagAssignment!.localBody.isNotEmpty &&
+          _bagAssignment!.district.isNotEmpty) {
         return '${_bagAssignment!.localBody}, ${_bagAssignment!.district}';
       }
       if (_bagAssignment!.district.isNotEmpty) return _bagAssignment!.district;
@@ -345,12 +346,10 @@ class HomeViewModel extends ChangeNotifier {
 
   // Sanitary pickups count for today — only picked/collected/completed count as done (arrived is still to be collected)
   int get todaySanitaryTotal => todayLocations.length;
-  int get todaySanitaryCompleted => todayLocations
-      .where((l) {
+  int get todaySanitaryCompleted => todayLocations.where((l) {
         final s = l.status.toLowerCase();
         return s == 'picked' || s == 'collected' || s == 'completed';
-      })
-      .length;
+      }).length;
 
   int get todayTotalSpots =>
       todaySlots.fold<int>(0, (sum, s) => sum + s.availableSpots);

@@ -1,6 +1,6 @@
+import 'package:floret_collector/features/collection_history/model/collection_summary_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../model/collection_history_model.dart';
 
 class CollectionFilterBottomSheet extends StatefulWidget {
   final CollectionFilterModel initialFilter;
@@ -90,10 +90,10 @@ class _CollectionFilterBottomSheetState
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1E293B),
+              primary: Colors.white,
               onPrimary: Colors.white,
               surface: Colors.white,
-              onSurface: Color(0xFF0F172A),
+              onSurface: Colors.white,
             ),
           ),
           child: child!,
@@ -427,9 +427,8 @@ class _CollectionFilterBottomSheetState
           color: isSelected ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFF1E293B)
-                : const Color(0xFFE2E8F0),
+            color:
+                isSelected ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
             width: 1,
           ),
         ),
