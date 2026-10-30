@@ -1,7 +1,7 @@
 import 'package:floret_collector/features/home/model/location_pickup_model.dart';
 import 'package:floret_collector/features/home/screen/widgets/home_shimmer.dart';
 import 'package:floret_collector/features/home/screen/widgets/metric_card.dart';
-import 'package:floret_collector/features/home/screen/widgets/remaining_bag_alert.dart';
+
 import 'package:floret_collector/features/home/screen/widgets/start_route_bottom_sheet.dart';
 import 'package:floret_collector/features/collection_route/screen/collection_route_screen.dart';
 import 'package:flutter/material.dart';

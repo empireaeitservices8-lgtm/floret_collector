@@ -1,4 +1,5 @@
 import 'package:floret_collector/core/di/injection.dart';
+import 'package:floret_collector/features/home/screen/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/direct_disposal_model.dart';
@@ -22,6 +23,7 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
   late final TextEditingController _rateController;
   late final TextEditingController _searchController;
   final ScrollController _scrollController = ScrollController();
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -94,12 +96,9 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 6),
-
                   // Tabs: New Record | Disposal Logs
                   _buildTabs(vm),
-
                   // Body Content
                   Expanded(
                     child: vm.selectedTab == DirectDisposalTab.newRecord
@@ -921,7 +920,9 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                       value: vm.paymentStatus,
                       items: vm.paymentStatusOptions,
                       onChanged: (val) {
-                        if (val != null) vm.setPaymentStatus(val);
+                        if (val != null) {
+                          vm.setPaymentStatus(val);
+                        }
                       },
                     ),
                   ],
@@ -1038,48 +1039,68 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: () async {
-                final success = await vm.submitRecord();
-                if (success) {
-                  // Clear form fields
-                  _nameController.clear();
-                  _phoneController.clear();
-                  _addressController.clear();
-                  _descController.clear();
-                  _weightController.clear();
-                  _rateController.text = '2.00';
+              onPressed: _isSubmitting
+                  ? null
+                  : () async {
+                      setState(() => _isSubmitting = true);
 
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Direct disposal recorded successfully!',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        backgroundColor: Colors.black,
-                        behavior: SnackBarBehavior.floating,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                }
-              },
+                      try {
+                        final success = await vm.submitRecord();
+
+                        if (!mounted) return;
+
+                        if (success) {
+                          _nameController.clear();
+                          _phoneController.clear();
+                          _addressController.clear();
+                          _descController.clear();
+                          _weightController.clear();
+                          _rateController.text = '2.00';
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Direct disposal recorded successfully!',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.black,
+                              behavior: SnackBarBehavior.floating,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() => _isSubmitting = false);
+                        }
+                      }
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1E293B),
+                disabledBackgroundColor: const Color(0xFF1E293B),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 0,
               ),
-              child: const Text(
-                'Record Disposal',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Record Disposal',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -1295,15 +1316,14 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  "PAID",
-                  // item.paymentStatus.toUpperCase(),
+                  item.paymentStatus.toUpperCase(),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF15803D),
-                    // color: isPaid
-                    //     ? const Color(0xFF15803D)
-                    //     : const Color(0xFF92400E),
+                    //color: const Color(0xFF15803D),
+                    color: isPaid
+                        ? const Color(0xFF15803D)
+                        : const Color(0xFF92400E),
                     letterSpacing: 0.3,
                   ),
                 ),

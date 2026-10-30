@@ -139,7 +139,9 @@ class DirectDisposalViewModel extends ViewModel {
   void setPhone(String val) {
     _phone = val;
     if (_hasAttemptedSubmit) {
-      _phoneError = val.trim().isEmpty ? 'Phone number is required' : null;
+      _phoneError = !RegExp(r'^[0-9]{10}$').hasMatch(val.trim())
+          ? 'Enter a valid 10-digit phone number'
+          : null;
     }
     notifyListeners();
   }
@@ -206,8 +208,8 @@ class DirectDisposalViewModel extends ViewModel {
       _nameError = null;
     }
 
-    if (_phone.trim().isEmpty) {
-      _phoneError = 'Phone number is required';
+    if (!RegExp(r'^[0-9]{10}$').hasMatch(_phone.trim())) {
+      _phoneError = 'Enter a valid 10-digit phone number';
       isValid = false;
     } else {
       _phoneError = null;
@@ -247,17 +249,17 @@ class DirectDisposalViewModel extends ViewModel {
     }
 
     await _repository.recordDisposal(
-      customerName: _customerName.trim(),
-      customerPhone: _phone.trim(),
-      customerAddress: _customerAddress.trim(),
-      disposalType: mappedDisposalType,
-      wasteType: mappedWasteType,
-      wasteDescription: _wasteDescription.trim().isEmpty
-          ? 'Mixed waste'
-          : _wasteDescription.trim(),
-      weight: _weight,
-      disposalRate: _rate,
-    );
+        customerName: _customerName.trim(),
+        customerPhone: _phone.trim(),
+        customerAddress: _customerAddress.trim(),
+        disposalType: mappedDisposalType,
+        wasteType: mappedWasteType,
+        wasteDescription: _wasteDescription.trim().isEmpty
+            ? 'Mixed waste'
+            : _wasteDescription.trim(),
+        weight: _weight,
+        disposalRate: _rate,
+        paymentStatus: _paymentStatus);
 
     await loadLogs();
 

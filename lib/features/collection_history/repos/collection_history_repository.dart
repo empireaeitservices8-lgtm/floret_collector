@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:floret_collector/features/collection_history/model/collection_summary_model.dart';
@@ -103,11 +102,6 @@ class CollectionHistoryRepository {
         APIEndPoints.collectorHistory,
         queryParameters: queryParameters,
       );
-      try {
-        const encoder = JsonEncoder.withIndent('  ');
-        final formattedJson = encoder.convert(response.data);
-        print(formattedJson);
-      } catch (_) {}
 
       if (response.data is Map) {
         final data = Map<String, dynamic>.from(response.data as Map);

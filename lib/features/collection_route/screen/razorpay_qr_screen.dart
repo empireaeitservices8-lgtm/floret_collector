@@ -507,7 +507,7 @@ class _RazorpayQRScreenState extends State<RazorpayQRScreen> {
                     backgroundColor: const Color(0xFF16A34A),
                     foregroundColor: Colors.white,
                     disabledBackgroundColor:
-                        const Color(0xFF16A34A).withOpacity(0.6),
+                        const Color(0xFF16A34A).withValues(alpha: 0.6),
                     disabledForegroundColor: Colors.white70,
                     elevation: 1,
                     shape: RoundedRectangleBorder(

@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'package:intl/intl.dart';
 import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/core/storage/collector_details.dart';
 import 'package:floret_collector/services/api_client.dart';
@@ -27,17 +25,16 @@ class DirectDisposalRepository {
   Future<List<DirectDisposalLogModel>> fetchLogs() async {
     try {
       final response = await _apiClient.get(APIEndPoints.directDisposal);
-
-      // Print response formatted like the API response
-      try {
-        const encoder = JsonEncoder.withIndent('  ');
-        final formattedJson = encoder.convert(response.data);
-        // ignore: avoid_print
-        print(formattedJson);
-      } catch (_) {
-        // ignore: avoid_print
-        print(response.data);
-      }
+      // // Print response formatted like the API response
+      // try {
+      //   const encoder = JsonEncoder.withIndent('  ');
+      //   final formattedJson = encoder.convert(response.data);
+      //   // ignore: avoid_print
+      //   print(formattedJson);
+      // } catch (_) {
+      //   // ignore: avoid_print
+      //   print(response.data);
+      // }
 
       if (response.data is List) {
         final list = response.data as List;
@@ -81,96 +78,69 @@ class DirectDisposalRepository {
     String? wasteDescription,
     required double weight,
     required double disposalRate,
-    int? localBody,
-    int? ward,
+    // int? localBody,
+    // int? ward,
+    required String paymentStatus,
   }) async {
-    int resolvedLocalBody = localBody ?? 15;
-    int resolvedWard = ward ?? 1;
+    // int? resolvedLocalBody = localBody;
+    // int? resolvedWard = ward;
     String username = '';
 
-    try {
-      username = await _collectorLocalStorage.getUsername();
-      final collector = await _collectorLocalStorage.getCollector();
-      if (collector != null) {
-        if (collector['local_body'] != null) {
-          resolvedLocalBody =
-              int.tryParse(collector['local_body'].toString()) ??
-                  resolvedLocalBody;
-        }
-        if (collector['ward'] != null) {
-          resolvedWard =
-              int.tryParse(collector['ward'].toString()) ?? resolvedWard;
-        }
-      }
-    } catch (_) {}
+    username = await _collectorLocalStorage.getUsername();
 
-    final requestBody = {
-      'customer_name': customerName,
-      'customer_phone': customerPhone,
-      'customer_address': customerAddress,
+    final collector = await _collectorLocalStorage.getCollector();
+
+    // if (collector != null) {
+    //   resolvedLocalBody ??=
+    //       int.tryParse(collector['local_body']?.toString() ?? '');
+
+    //   resolvedWard ??= int.tryParse(collector['ward']?.toString() ?? '');
+    // }
+
+    // if (resolvedLocalBody == null || resolvedWard == null) {
+    //   throw Exception('Please select a local body and ward.');
+    // }
+
+    final requestBody = <String, dynamic>{
+      'customer_name': customerName.trim(),
+      'customer_phone': customerPhone.trim(),
+      'customer_address': customerAddress.trim(),
       'disposal_type': disposalType,
       'waste_type': wasteType,
       'waste_description': wasteDescription ?? 'Mixed waste',
       'weight': weight,
       'disposal_rate': disposalRate,
-      'local_body': resolvedLocalBody,
-      'ward': resolvedWard,
+      // 'local_body': resolvedLocalBody,
+      // 'ward': resolvedWard,
+      'payment_status': paymentStatus.trim().toLowerCase(),
       if (username.isNotEmpty) 'recorded_by': username,
     };
 
-    try {
-      final response = await _apiClient.post(
-        APIEndPoints.directDisposal,
-        data: requestBody,
-      );
-
-      // Print response formatted like the API response
-      try {
-        const encoder = JsonEncoder.withIndent('  ');
-        final formattedJson = encoder.convert(response.data);
-        // ignore: avoid_print
-        print(formattedJson);
-      } catch (_) {
-        // ignore: avoid_print
-        print(response.data);
-      }
-
-      if (response.data is Map && response.data['disposal'] != null) {
-        final disposalData =
-            Map<String, dynamic>.from(response.data['disposal'] as Map);
-        if (disposalData['recorded_by'] == null && username.isNotEmpty) {
-          disposalData['recorded_by'] = username;
-        }
-        final createdLog = DirectDisposalLogModel.fromJson(disposalData);
-        _logs.insert(0, createdLog);
-        return createdLog;
-      }
-    } catch (_) {}
-
-    // Fallback log for offline or test execution
-    final fallbackLog = DirectDisposalLogModel(
-      id: '${DateTime.now().millisecondsSinceEpoch}',
-      customerName: customerName,
-      phone: customerPhone,
-      customerAddress: customerAddress,
-      disposalType: disposalType.toUpperCase(),
-      wasteType: wasteType,
-      wasteDescription: wasteDescription ?? '',
-      weight: weight,
-      rate: disposalRate,
-      gstRatePercent: 5.0,
-      gstAmount: (weight * disposalRate) * 0.05,
-      totalAmount: (weight * disposalRate) * 1.05,
-      paymentMethod: 'CASH',
-      paymentStatus: 'PAID',
-      formattedDate: DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now()),
-      recordedBy: username.isNotEmpty ? username : null,
+    final response = await _apiClient.post(
+      APIEndPoints.directDisposal,
+      data: requestBody,
     );
-    _logs.insert(0, fallbackLog);
-    return fallbackLog;
-  }
 
-  Future<void> addLog(DirectDisposalLogModel log) async {
-    _logs.insert(0, log);
+    final data = response.data;
+
+    if (data is! Map || data['disposal'] is! Map) {
+      throw const FormatException(
+        'Invalid response: disposal details are missing.',
+      );
+    }
+
+    final disposalData = Map<String, dynamic>.from(
+      data['disposal'] as Map,
+    );
+
+    if (disposalData['recorded_by'] == null && username.isNotEmpty) {
+      disposalData['recorded_by'] = username;
+    }
+
+    final createdLog = DirectDisposalLogModel.fromJson(disposalData);
+
+    _logs.insert(0, createdLog);
+
+    return createdLog;
   }
 }
