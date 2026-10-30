@@ -49,7 +49,9 @@ class APIEndPoints {
       '/api/update-collector-location/';
   static const String confirmReached = '/api/confirm-reached/';
   static const String confirmAndPayData = '/api/confirm-and-pay-data/';
-  static const String disposalRates = '/api/disposal-rates/';
+  //static const String disposalRates = '/api/disposal-rates/';
+  static const String ratesFromUser = '/api/rates-from-user/';
+  static const String newRates = '/api/rates-from-user/';
   static const String generateBill = '/api/generate-bill/';
   static const String processPayment = '/api/process-payment/';
   static const String confirmAndPay = '/api/confirm-and-pay/';
@@ -57,6 +59,7 @@ class APIEndPoints {
   static const String collectPickup = '/api/collect-pickup/';
   static const String uploadWastePhoto = '/api/upload-waste-photo/';
   static const String razorpayGenerateQr = '/api/razorpay/generate-qr/';
+  static const String razorpayPaymentVerify = '/api/razorpay/payment-status/';
 
   //reshedule
   static const String reschedule = '/api/reschedule-pickup/';

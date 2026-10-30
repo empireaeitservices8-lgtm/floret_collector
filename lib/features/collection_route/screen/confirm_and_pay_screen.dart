@@ -1,11 +1,6 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:floret_collector/features/collection_route/repository/ward_route_repository.dart';
-import 'package:floret_collector/core/storage/collection_metrics_storage.dart';
+import 'package:floret_collector/features/collection_route/viewModel/confirm_and_pay_view_model.dart';
 import 'payment_receipt_screen.dart';
-
 import 'razorpay_qr_screen.dart';
 
 class ConfirmAndPayScreen extends StatefulWidget {
@@ -33,216 +28,69 @@ class ConfirmAndPayScreen extends StatefulWidget {
 }
 
 class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
-  final _repository = WardRouteRepository();
-  final _imagePicker = ImagePicker();
-  bool _isFetchingInitialData = true;
-  bool _isLoading = false;
-
-  String _address = '';
-  String _userName = '';
-  String _userPhone = '';
-  String _wasteType = '';
-  String _localBody = '';
-  double _disposalRate = 0.00;
-  // double _walletBalance = 0.0;
-  // List<Map<String, dynamic>> _vouchers = [];
-  // Map<String, dynamic>? _selectedVoucher;
-
-  int _bagQuantity = 0;
-  final double _bagPrice = 7.00;
+  late final ConfirmAndPayViewModel _viewModel;
   final TextEditingController _weightController =
       TextEditingController(text: '5.0');
-  double _wasteWeight = 5.0;
-
-  bool _redeemWallet = false;
-  bool _applyCoupon = false;
-
-  String _selectedPaymentOption = 'Cash'; // 'Cash', 'Online (QR)', 'Wallet'
-  final List<Map<String, dynamic>> _verificationPhotos = [];
 
   @override
   void initState() {
     super.initState();
-    _address = widget.address;
-    _wasteType = widget.wasteType;
-    _localBody = widget.localBody;
-    _disposalRate = widget.disposalRate ?? 0.0;
+    _viewModel = ConfirmAndPayViewModel(
+      pickupId: widget.pickupId,
+      collectorId: widget.collectorId,
+      initialAddress: widget.address,
+      initialWasteType: widget.wasteType,
+      initialLocalBody: widget.localBody,
+      initialDisposalRate: widget.disposalRate,
+    );
 
-    _weightController.addListener(() {
-      final val = double.tryParse(_weightController.text.trim()) ?? 0.0;
-      if (val != _wasteWeight) {
-        setState(() {
-          _wasteWeight = val;
-        });
-      }
-    });
-
-    _loadInitialData();
+    _weightController.addListener(_onWeightChanged);
+    _viewModel.addListener(_onViewModelChanged);
+    _viewModel.loadInitialData();
   }
 
-  Future<void> _loadInitialData() async {
-    if (widget.pickupId <= 0) {
-      if (mounted) setState(() => _isFetchingInitialData = false);
-      return;
-    }
+  void _onWeightChanged() {
+    _viewModel.setWasteWeightFromString(_weightController.text);
+  }
 
-    try {
-      final data = await _repository.fetchConfirmAndPayData(
-        pickupId: widget.pickupId,
-      );
-      // print("dta");
-      // print(data);
-      if (data != null && mounted) {
-        final pickupData = data['pickup_data'] as Map<String, dynamic>?;
-        if (pickupData != null) {
-          _address = pickupData['address']?.toString() ?? _address;
-          _userName = pickupData['user_name']?.toString() ?? '';
-          _userPhone = pickupData['user_phone']?.toString() ?? '';
-          _wasteType = pickupData['waste_type']?.toString() ?? _wasteType;
-        }
-
-        final billingData = data['billing_data'] as Map<String, dynamic>?;
-        if (billingData != null) {
-          final rate = (billingData['rate_per_kg'] as num?)?.toDouble();
-          if (rate != null && rate > 0) {
-            _disposalRate = rate;
-          }
-        }
-
-        // final walletData = data['wallet_data'] as Map<String, dynamic>?;
-        // if (walletData != null) {
-        //   _walletBalance =
-        //       (walletData['wallet_balance'] as num?)?.toDouble() ?? 0.0;
-        // }
-
-        // final rawVouchers = data['swipe_vouchers'] as List<dynamic>?;
-        // if (rawVouchers != null) {
-        //   _vouchers = rawVouchers.whereType<Map<String, dynamic>>().toList();
-        // }
-
-        // Fetch disposal rate from local_body if available
-        final localBodyId = (data['local_body_id'] as num?)?.toInt();
-        final dRate =
-            await _repository.fetchDisposalRate(localBodyId: localBodyId!);
-        if (dRate != null && dRate > 0) {
-          _disposalRate = dRate;
-        }
-      }
-    } catch (e) {
-      debugPrint('Error loading confirm & pay data: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isFetchingInitialData = false);
-      }
-    }
+  void _onViewModelChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _weightController.removeListener(_onWeightChanged);
+    _viewModel.removeListener(_onViewModelChanged);
     _weightController.dispose();
+    _viewModel.dispose();
     super.dispose();
   }
 
-  double get _bagsCost => _bagQuantity * _bagPrice;
-  double get _disposalFee => _wasteWeight * _disposalRate;
-  double get _subtotal => _bagsCost + _disposalFee;
-  double get _gst => _subtotal * 0.18;
-  double get _grossTotal => _subtotal + _gst;
-  double get _totalPayable => _grossTotal;
-
   Future<void> _handleConfirmPayment() async {
-    setState(() => _isLoading = true);
+    final success = await _viewModel.confirmPayment();
+    if (!mounted) return;
 
-    String billTransactionId = 'CASH-${DateTime.now().millisecondsSinceEpoch}';
-    String billId = '${DateTime.now().millisecondsSinceEpoch % 1000}';
+    if (success) {
+      final navResult = await Navigator.pushNamed(
+        context,
+        PaymentReceiptScreen.routeName,
+        arguments: _viewModel.paymentReceiptArguments,
+      );
 
-    try {
-      final methodStr = _selectedPaymentOption.toLowerCase().contains('online')
-          ? 'online'
-          : (_selectedPaymentOption.toLowerCase().contains('wallet')
-              ? 'wallet'
-              : 'cash');
-
-      // 1. POST /api/generate-bill/
-      final billBody = {
-        'pickup_id': widget.pickupId,
-        'weight': _wasteWeight,
-        'rate': _disposalRate,
-        'total_amount': double.parse(_totalPayable.toStringAsFixed(2)),
-        'payment_method': methodStr,
-        'transaction_id': billTransactionId,
-        'payment_gateway': methodStr == 'online' ? 'online' : 'cash',
-        'payment_status': 'paid',
-        'remarks': 'Waste collection payment',
-      };
-      final billRes = await _repository.generateBill(body: billBody);
-      if (billRes != null) {
-        final billData = billRes['bill'] as Map<String, dynamic>?;
-        if (billData != null) {
-          billId = billData['id']?.toString() ?? billId;
-          billTransactionId =
-              billData['transaction_id']?.toString() ?? billTransactionId;
-        }
+      if (navResult == true && mounted) {
+        Navigator.pop(context, true);
       }
-
-      // 2. POST /api/process-payment/ (handled gracefully)
-      await _repository.processPayment(
-        pickupId: widget.pickupId,
-        paymentMethod: methodStr,
-      );
-
-      // 3. POST /api/confirm-and-pay/ (handled gracefully)
-      final confirmPayBody = {
-        'pickup_id': widget.pickupId,
-        'collector_id': widget.collectorId,
-        'weight': _wasteWeight,
-        'payment_method': methodStr,
-        'redeem_wallet': _redeemWallet,
-        'wallet_redeemed': _redeemWallet,
-        'apply_voucher': _applyCoupon,
-        'transaction_id': 'BILL-$billId',
-      };
-      await _repository.confirmAndPay(body: confirmPayBody);
-
-      // 4. POST /api/update-pickup-status/ (status: completed)
-      await _repository.updatePickupStatus(
-        pickupId: widget.pickupId,
-        status: 'completed',
-      );
-
-      // 5. POST /api/collect-pickup/ (status: picked)
-      await _repository.collectPickup(
-        pickupId: widget.pickupId,
-        collectorId: widget.collectorId,
-      );
-
-      // 6. Record collection metrics for Home page containers
-      await CollectionMetricsStorage().recordCollection(
-        pickupId: widget.pickupId > 0
-            ? widget.pickupId
-            : DateTime.now().millisecondsSinceEpoch,
-        weight: _wasteWeight,
-        amount: _totalPayable,
-      );
-    } catch (e) {
-      debugPrint('Confirm & pay processing error: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
+  }
 
+  Future<void> _handleGenerateRazorpayQR() async {
+    await _viewModel.ensureBillGenerated();
     if (!mounted) return;
 
     final result = await Navigator.pushNamed(
       context,
-      PaymentReceiptScreen.routeName,
-      arguments: {
-        'totalAmount': _totalPayable,
-        'paymentMode': _selectedPaymentOption,
-        'transactionId': 'BILL-$billId',
-        'dateTime': DateTime.now(),
-        'bagsCollected': _bagQuantity,
-        'disposalWeight': _wasteWeight,
-      },
+      RazorpayQRScreen.routeName,
+      arguments: _viewModel.razorpayQRArguments,
     );
 
     if (result == true && mounted) {
@@ -250,9 +98,44 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
     }
   }
 
+  Future<void> _handlePickVerificationPhoto() async {
+    if (_viewModel.hasMaxPhotos) {
+      _showSnack('Maximum 5 verification photos allowed', isError: true);
+      return;
+    }
+
+    try {
+      await _viewModel.pickVerificationPhoto();
+    } catch (e) {
+      if (mounted) {
+        _showSnack('Could not open camera: $e', isError: true);
+      }
+    }
+  }
+
+  Future<void> _handleUploadPhoto(int index) async {
+    final success = await _viewModel.uploadPhoto(index);
+    if (!mounted) return;
+
+    if (_viewModel.lastUploadMessage != null) {
+      _showSnack(_viewModel.lastUploadMessage!, isError: !success);
+    }
+  }
+
+  void _showSnack(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor:
+            isError ? const Color(0xFFEF4444) : const Color(0xFF16A34A),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_isFetchingInitialData || _isLoading) {
+    if (_viewModel.isFetchingInitialData || _viewModel.isLoading) {
       return Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -319,16 +202,12 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
             const SizedBox(height: 10),
             _buildWasteWeightInputCard(),
             const SizedBox(height: 20),
-            //   _buildWalletCard(),
-            //   const SizedBox(height: 10),
-            // //  _buildCouponsCard(),
-            //   const SizedBox(height: 18),
 
             // Section 3: Payment Option
             _buildSectionHeader('3. Payment Option'),
             const SizedBox(height: 8),
             _buildPaymentOptions(),
-            if (_selectedPaymentOption == 'Online (QR)') ...[
+            if (_viewModel.isOnlinePayment) ...[
               _buildRazorpayQRPreviewCard(),
             ],
             const SizedBox(height: 18),
@@ -347,22 +226,18 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _selectedPaymentOption == 'Online (QR)'
+                onPressed: _viewModel.isOnlinePayment
                     ? _handleGenerateRazorpayQR
                     : _handleConfirmPayment,
                 icon: Icon(
-                  _selectedPaymentOption == 'Online (QR)'
+                  _viewModel.isOnlinePayment
                       ? Icons.qr_code_2_rounded
                       : Icons.check_circle_outline_rounded,
                   size: 20,
                   color: Colors.white,
                 ),
                 label: Text(
-                  _selectedPaymentOption == 'Online (QR)'
-                      ? 'Generate Razorpay QR (₹${_totalPayable.toStringAsFixed(2)})'
-                      : (_totalPayable > 0
-                          ? 'Confirm Payment (₹${_totalPayable.toStringAsFixed(2)})'
-                          : 'Confirm Payment (Fully Covered)'),
+                  _viewModel.confirmButtonText,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -370,7 +245,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _selectedPaymentOption == 'Online (QR)'
+                  backgroundColor: _viewModel.isOnlinePayment
                       ? const Color(0xFF0F1E36)
                       : const Color(0xFF1E293B),
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -428,7 +303,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _address.isNotEmpty ? _address : widget.address,
+                  _viewModel.addressDisplay,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -437,9 +312,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _userName.isNotEmpty
-                      ? '$_userName • $_userPhone'
-                      : (_address.isNotEmpty ? _address : widget.address),
+                  _viewModel.userSubtitleDisplay,
                   style: const TextStyle(
                     fontSize: 13,
                     color: Color(0xFF64748B),
@@ -448,28 +321,6 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
               ],
             ),
           ),
-          // Container(
-          //   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          //   decoration: BoxDecoration(
-          //     border: Border.all(color: const Color(0xFFE2E8F0)),
-          //     borderRadius: BorderRadius.circular(8),
-          //   ),
-          //   child: Row(
-          //     mainAxisSize: MainAxisSize.min,
-          //     children: const [
-          //       Icon(Icons.edit_outlined, size: 14, color: Color(0xFF1E293B)),
-          //       SizedBox(width: 4),
-          //       Text(
-          //         'Edit',
-          //         style: TextStyle(
-          //           fontSize: 13,
-          //           fontWeight: FontWeight.w700,
-          //           color: Color(0xFF1E293B),
-          //         ),
-          //       ),
-          //     ],
-          //   ),
-          // ),
         ],
       ),
     );
@@ -488,8 +339,8 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
+            children: [
+              const Text(
                 'Waste Bag',
                 style: TextStyle(
                   fontSize: 15,
@@ -497,10 +348,10 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                   color: Color(0xFF1E293B),
                 ),
               ),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               Text(
-                'Price: ₹7 per bag',
-                style: TextStyle(
+                _viewModel.bagPriceLabel,
+                style: const TextStyle(
                   fontSize: 13,
                   color: Color(0xFF64748B),
                 ),
@@ -510,15 +361,15 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
           Row(
             children: [
               IconButton(
-                onPressed: _bagQuantity > 0
-                    ? () => setState(() => _bagQuantity--)
+                onPressed: _viewModel.bagQuantity > 0
+                    ? _viewModel.decrementBagQuantity
                     : null,
                 icon: const Icon(Icons.remove_circle_outline, size: 24),
                 color: const Color(0xFF1E293B),
                 disabledColor: const Color(0xFFCBD5E1),
               ),
               Text(
-                '$_bagQuantity',
+                '${_viewModel.bagQuantity}',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -526,7 +377,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                 ),
               ),
               IconButton(
-                onPressed: () => setState(() => _bagQuantity++),
+                onPressed: _viewModel.incrementBagQuantity,
                 icon: const Icon(Icons.add_circle_outline, size: 24),
                 color: const Color(0xFF1E293B),
               ),
@@ -558,7 +409,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
           ),
           Flexible(
             child: Text(
-              '${_localBody.isNotEmpty ? _localBody : widget.localBody} (Rate: ₹${_disposalRate.toStringAsFixed(2)}/kg)',
+              _viewModel.localBodySummaryLabel,
               textAlign: TextAlign.right,
               style: const TextStyle(
                 fontSize: 13.5,
@@ -637,215 +488,21 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
     );
   }
 
-  // Widget _buildWalletCard() {
-  //   return Container(
-  //     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(14),
-  //       border: Border.all(color: const Color(0xFFE2E8F0)),
-  //     ),
-  //     child: Row(
-  //       children: [
-  //         Container(
-  //           width: 36,
-  //           height: 36,
-  //           decoration: const BoxDecoration(
-  //             color: Color(0xFFF1F5F9),
-  //             shape: BoxShape.circle,
-  //           ),
-  //           child: const Icon(
-  //             Icons.account_balance_wallet_outlined,
-  //             size: 18,
-  //             color: Color(0xFF1E293B),
-  //           ),
-  //         ),
-  //         const SizedBox(width: 10),
-  //         Expanded(
-  //           child: Column(
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: [
-  //               const Text(
-  //                 'Redeem Wallet Balance',
-  //                 style: TextStyle(
-  //                   fontSize: 14,
-  //                   fontWeight: FontWeight.w700,
-  //                   color: Color(0xFF1E293B),
-  //                 ),
-  //               ),
-  //               const SizedBox(height: 2),
-  //               Text(
-  //                 'Available Balance: ₹${_walletBalance.toStringAsFixed(2)}',
-  //                 style: TextStyle(
-  //                   fontSize: 12,
-  //                   fontWeight: FontWeight.w500,
-  //                   color: _walletBalance > 0
-  //                       ? const Color(0xFF16A34A)
-  //                       : const Color(0xFFEF4444),
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //         Switch(
-  //           value: false,
-  //           onChanged: null,
-  //           // value: _redeemWallet,
-  //           // activeThumbColor: const Color(0xFF1E293B),
-  //           // onChanged: (val) => setState(() => _redeemWallet = val),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  // Future<void> _openCouponsScreen() async {
-  //   final selected = await Navigator.pushNamed(
-  //     context,
-  //     AvailableCouponsVouchersScreen.routeName,
-  //     arguments: {
-  //       'userPoints': _walletBalance.toInt(),
-  //       'vouchers': _vouchers,
-  //     },
-  //   );
-  //   if (selected != null && selected is Map<String, dynamic> && mounted) {
-  //     setState(() {
-  //       _selectedVoucher = selected;
-  //       _applyCoupon = true;
-  //     });
-  //   }
-  // }
-
-  // Widget _buildCouponsCard() {
-  //   final activeVoucher =
-  //       _selectedVoucher ?? (_vouchers.isNotEmpty ? _vouchers.first : null);
-  //   final voucherCode = activeVoucher?['code']?.toString() ??
-  //       activeVoucher?['voucher_code']?.toString() ??
-  //       'FLT-250';
-  //   final voucherStatus = activeVoucher?['status']?.toString() ?? 'INACTIVE';
-
-  //   return Container(
-  //     padding: const EdgeInsets.all(14),
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(14),
-  //       border: Border.all(color: const Color(0xFFE2E8F0)),
-  //     ),
-  //     child: Column(
-  //       children: [
-  //         InkWell(
-  //           onTap: _openCouponsScreen,
-  //           child: Row(
-  //             children: [
-  //               Container(
-  //                 width: 36,
-  //                 height: 36,
-  //                 decoration: const BoxDecoration(
-  //                   color: Color(0xFFEFF6FF),
-  //                   shape: BoxShape.circle,
-  //                 ),
-  //                 child: const Icon(
-  //                   Icons.confirmation_num_outlined,
-  //                   size: 18,
-  //                   color: Color(0xFF2563EB),
-  //                 ),
-  //               ),
-  //               const SizedBox(width: 10),
-  //               const Expanded(
-  //                 child: Text(
-  //                   'Coupons & Vouchers',
-  //                   style: TextStyle(
-  //                     fontSize: 14,
-  //                     fontWeight: FontWeight.w700,
-  //                     color: Color(0xFF1E293B),
-  //                   ),
-  //                 ),
-  //               ),
-  //               const Text(
-  //                 'View all coupons >',
-  //                 style: TextStyle(
-  //                   fontSize: 13,
-  //                   fontWeight: FontWeight.w700,
-  //                   color: Color(0xFF2563EB),
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //         const SizedBox(height: 12),
-  //         Container(
-  //           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-  //           decoration: BoxDecoration(
-  //             color: const Color(0xFFF8FAFC),
-  //             borderRadius: BorderRadius.circular(10),
-  //           ),
-  //           child: Row(
-  //             children: [
-  //               Container(
-  //                 padding:
-  //                     const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-  //                 decoration: BoxDecoration(
-  //                   color: const Color(0xFF334155),
-  //                   borderRadius: BorderRadius.circular(6),
-  //                 ),
-  //                 child: Text(
-  //                   voucherCode,
-  //                   style: const TextStyle(
-  //                     fontSize: 12,
-  //                     fontWeight: FontWeight.w700,
-  //                     color: Colors.white,
-  //                   ),
-  //                 ),
-  //               ),
-  //               const SizedBox(width: 6),
-  //               Container(
-  //                 padding:
-  //                     const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-  //                 decoration: BoxDecoration(
-  //                   color: const Color(0xFFFEE2E2),
-  //                   borderRadius: BorderRadius.circular(6),
-  //                 ),
-  //                 child: Text(
-  //                   voucherStatus,
-  //                   style: const TextStyle(
-  //                     fontSize: 11,
-  //                     fontWeight: FontWeight.w700,
-  //                     color: Color(0xFFDC2626),
-  //                   ),
-  //                 ),
-  //               ),
-  //               const Spacer(),
-  //               Switch(
-  //                 value: false,
-  //                 onChanged: null,
-  //                 // value: _applyCoupon,
-  //                 // activeThumbColor: const Color(0xFF1E293B),
-  //                 // onChanged: (val) => setState(() => _applyCoupon = val),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
   Widget _buildPaymentOptions() {
     final options = [
       {'title': 'Cash', 'icon': Icons.payments_outlined},
       {'title': 'Online (QR)', 'icon': Icons.qr_code_2_rounded},
-      {'title': 'Wallet', 'icon': Icons.account_balance_wallet_outlined},
     ];
 
     return Row(
       children: options.map((opt) {
         final title = opt['title'] as String;
         final icon = opt['icon'] as IconData;
-        final isSelected = _selectedPaymentOption == title;
+        final isSelected = _viewModel.selectedPaymentOption == title;
 
         return Expanded(
           child: GestureDetector(
-            onTap: () => setState(() => _selectedPaymentOption = title),
+            onTap: () => _viewModel.setSelectedPaymentOption(title),
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 4),
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -952,7 +609,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Generate dynamic UPI QR code for ₹${_totalPayable.toStringAsFixed(2)}. Customer can scan with GPay, PhonePe, Paytm, or BHIM to pay instantly.',
+            _viewModel.qrPreviewText,
             style: const TextStyle(
               fontSize: 12.5,
               color: Color(0xFF64748B),
@@ -989,164 +646,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
     );
   }
 
-  Future<void> _handleGenerateRazorpayQR() async {
-    final result = await Navigator.pushNamed(
-      context,
-      RazorpayQRScreen.routeName,
-      arguments: {
-        'pickupId': widget.pickupId,
-        'collectorId': widget.collectorId,
-        'amount': _totalPayable,
-        'address': _address,
-        'userName': _userName,
-        'userPhone': _userPhone,
-        'wasteWeight': _wasteWeight,
-        'bagQuantity': _bagQuantity,
-        'disposalRate': _disposalRate,
-        'redeemWallet': _redeemWallet,
-        'applyCoupon': _applyCoupon,
-      },
-    );
-
-    if (result == true && mounted) {
-      Navigator.pop(context, true);
-    }
-  }
-
-  Future<void> _handlePickVerificationPhoto() async {
-    if (_verificationPhotos.length >= 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Maximum 5 verification photos allowed'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Color(0xFFEF4444),
-        ),
-      );
-      return;
-    }
-
-    try {
-      final picked = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 85,
-      );
-      if (picked != null) {
-        setState(() {
-          _verificationPhotos.add({
-            'file': File(picked.path),
-            'name': picked.name,
-            'status': 'ready', // 'ready', 'uploading', 'uploaded', 'error'
-            'error': null,
-          });
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not open camera: $e'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: const Color(0xFFEF4444),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _uploadPhoto(int index) async {
-    if (index < 0 || index >= _verificationPhotos.length) return;
-    final photo = _verificationPhotos[index];
-    final file = photo['file'] as File;
-
-    setState(() {
-      photo['status'] = 'uploading';
-      photo['error'] = null;
-    });
-
-    try {
-      final bytes = await file.readAsBytes();
-      final base64String = base64Encode(bytes);
-
-      final res = await _repository.uploadWastePhoto(
-        pickupId: widget.pickupId,
-        photoBase64: base64String,
-      );
-
-      if (!mounted) return;
-
-      if (res != null) {
-        setState(() {
-          photo['status'] = 'uploaded';
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Waste photo uploaded successfully'),
-            backgroundColor: Color(0xFF16A34A),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      } else {
-        setState(() {
-          photo['status'] = 'error';
-          photo['error'] = 'Upload failed';
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to upload photo to server'),
-            backgroundColor: Color(0xFFEF4444),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        final errorMsg = e.toString().replaceFirst('Exception: ', '');
-        setState(() {
-          photo['status'] = 'error';
-          photo['error'] = errorMsg;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error uploading photo to server: $errorMsg'),
-            backgroundColor: const Color(0xFFEF4444),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  void _deletePhoto(int index) {
-    if (index < 0 || index >= _verificationPhotos.length) return;
-    setState(() {
-      _verificationPhotos.removeAt(index);
-    });
-  }
-
-  Widget _buildPhotoItemCard(int index, Map<String, dynamic> photo) {
-    final file = photo['file'] as File;
-    final name = photo['name']?.toString() ??
-        file.path.split(Platform.pathSeparator).last;
-    final status = photo['status']?.toString() ?? 'ready';
-    final isUploading = status == 'uploading';
-    final isUploaded = status == 'uploaded';
-
-    Color statusColor;
-    String statusText;
-    if (isUploaded) {
-      statusColor = const Color(0xFF16A34A);
-      statusText = 'Uploaded';
-    } else if (isUploading) {
-      statusColor = const Color(0xFF2563EB);
-      statusText = 'Uploading...';
-    } else if (status == 'error') {
-      statusColor = const Color(0xFFEF4444);
-      statusText = photo['error'] != null ? 'Upload failed' : 'Upload error';
-    } else {
-      statusColor = const Color(0xFFF59E0B);
-      statusText = 'Ready to upload';
-    }
-
+  Widget _buildPhotoItemCard(int index, VerificationPhotoItem photo) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
@@ -1162,7 +662,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Image.file(
-              file,
+              photo.file,
               width: 58,
               height: 58,
               fit: BoxFit.cover,
@@ -1184,7 +684,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  photo.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -1195,11 +695,11 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  statusText,
+                  photo.statusText,
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: statusColor,
+                    color: photo.statusColor,
                   ),
                 ),
               ],
@@ -1210,9 +710,11 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (!isUploaded)
+              if (!photo.isUploaded)
                 InkWell(
-                  onTap: isUploading ? null : () => _uploadPhoto(index),
+                  onTap: photo.isUploading
+                      ? null
+                      : () => _handleUploadPhoto(index),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding:
@@ -1221,7 +723,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                       color: const Color(0xFF1E293B),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: isUploading
+                    child: photo.isUploading
                         ? const SizedBox(
                             width: 14,
                             height: 14,
@@ -1281,7 +783,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                 ),
               const SizedBox(height: 8),
               InkWell(
-                onTap: () => _deletePhoto(index),
+                onTap: () => _viewModel.deletePhoto(index),
                 child: const Padding(
                   padding: EdgeInsets.symmetric(vertical: 2, horizontal: 4),
                   child: Row(
@@ -1341,7 +843,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              'Add Verification Photo (${_verificationPhotos.length}/5)',
+              _viewModel.photoCountLabel,
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -1364,11 +866,12 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
   }
 
   Widget _buildPhotoVerificationSection() {
+    final photos = _viewModel.verificationPhotos;
     return Column(
       children: [
-        for (int i = 0; i < _verificationPhotos.length; i++)
-          _buildPhotoItemCard(i, _verificationPhotos[i]),
-        if (_verificationPhotos.length < 5) _buildAddPhotoCard(),
+        for (int i = 0; i < photos.length; i++)
+          _buildPhotoItemCard(i, photos[i]),
+        if (_viewModel.canAddMorePhotos) _buildAddPhotoCard(),
       ],
     );
   }
@@ -1394,26 +897,26 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
           ),
           const SizedBox(height: 14),
           _buildSummaryRow(
-            'Waste Bags cost ($_bagQuantity × ₹${_bagPrice.toInt()})',
-            '₹${_bagsCost.toStringAsFixed(2)}',
+            _viewModel.bagsCostSummaryLabel,
+            _viewModel.formattedBagsCost,
           ),
           const SizedBox(height: 8),
           _buildSummaryRow(
-            'Disposal Fee (${_wasteWeight.toStringAsFixed(1)} Kgs at ₹${_disposalRate.toStringAsFixed(2)}/kg)',
-            '₹${_disposalFee.toStringAsFixed(2)}',
+            _viewModel.disposalFeeSummaryLabel,
+            _viewModel.formattedDisposalFee,
           ),
           const SizedBox(height: 12),
           const Divider(color: Color(0xFFE2E8F0)),
           const SizedBox(height: 10),
-          _buildSummaryRow('Subtotal', '₹${_subtotal.toStringAsFixed(2)}'),
+          _buildSummaryRow('Subtotal', _viewModel.formattedSubtotal),
           const SizedBox(height: 8),
-          _buildSummaryRow('GST (18%)', '₹${_gst.toStringAsFixed(2)}'),
+          _buildSummaryRow('GST (18%)', _viewModel.formattedGst),
           const SizedBox(height: 12),
           const Divider(color: Color(0xFFE2E8F0)),
           const SizedBox(height: 10),
           _buildSummaryRow(
             'Gross Total (incl. GST)',
-            '₹${_grossTotal.toStringAsFixed(2)}',
+            _viewModel.formattedGrossTotal,
             isBold: true,
           ),
           const SizedBox(height: 14),
@@ -1436,7 +939,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                   ),
                 ),
                 Text(
-                  '₹${_totalPayable.toStringAsFixed(2)}',
+                  _viewModel.formattedTotalPayable,
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w900,

@@ -13,9 +13,9 @@ class PaymentReceiptScreen extends StatelessWidget {
 
   const PaymentReceiptScreen({
     super.key,
-    this.totalAmount = 247.80,
-    this.paymentMode = 'Cash',
-    this.transactionId = 'BILL-245',
+    this.totalAmount = 0,
+    this.paymentMode = '',
+    this.transactionId = '',
     DateTime? dateTime,
     this.bagsCollected = 0,
     this.disposalWeight = 5.0,
@@ -23,8 +23,7 @@ class PaymentReceiptScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formattedDate =
-        DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
+    final formattedDate = DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -104,7 +103,8 @@ class PaymentReceiptScreen extends StatelessWidget {
               // Receipt Details Card
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(20),

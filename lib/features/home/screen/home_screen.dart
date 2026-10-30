@@ -13,7 +13,6 @@ import '../../schedule/screen/schedule_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   static const String routeName = '/HomeScreen';
-
   const HomeScreen({super.key});
 
   void _navigateToSchedule(BuildContext context) {
@@ -106,9 +105,9 @@ class HomeScreen extends StatelessWidget {
                           // Remaining Covers
                           Expanded(
                             child: GestureDetector(
-                              onTap: () async {
-                                await showBagDialog(context);
-                              },
+                              // onTap: () async {
+                              //   await showBagDialog(context);
+                              // },
                               child: buildMetricCard(
                                 iconBg: const Color(0xFFFEF3C7),
                                 iconColor: const Color(0xFFD97706),

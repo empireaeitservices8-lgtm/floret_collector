@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:floret_collector/features/collection_route/repository/ward_route_repository.dart';
+import 'package:floret_collector/features/collection_route/repository/collection_history_repository.dart';
 
 class MarkCompletedWithWarningScreen extends StatefulWidget {
   static const String routeName = '/MarkCompletedWithWarningScreen';

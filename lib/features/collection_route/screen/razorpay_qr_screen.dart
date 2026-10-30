@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:floret_collector/features/collection_route/repository/ward_route_repository.dart';
+import 'package:floret_collector/features/collection_route/repository/collection_history_repository.dart';
 import 'package:floret_collector/core/storage/collection_metrics_storage.dart';
-import 'payment_receipt_screen.dart';
 
 class RazorpayQRScreen extends StatefulWidget {
   static const String routeName = '/RazorpayQRScreen';
@@ -30,12 +28,12 @@ class RazorpayQRScreen extends StatefulWidget {
     required this.collectorId,
     required this.amount,
     this.billId,
-    this.address = 'Main Road',
+    this.address = '',
     this.userName = '',
     this.userPhone = '',
-    this.wasteWeight = 5.0,
+    this.wasteWeight = 0,
     this.bagQuantity = 0,
-    this.disposalRate = 42.0,
+    this.disposalRate = 0.0,
     this.redeemWallet = false,
     this.applyCoupon = false,
   });
@@ -44,786 +42,492 @@ class RazorpayQRScreen extends StatefulWidget {
   State<RazorpayQRScreen> createState() => _RazorpayQRScreenState();
 }
 
-class _RazorpayQRScreenState extends State<RazorpayQRScreen>
-    with SingleTickerProviderStateMixin {
-  final _repository = WardRouteRepository();
-
-  int? _billId;
-  String _orderId = '';
-  String _paymentLinkUrl = '';
-  String _transactionId = '';
-  String _qrData = '';
+class _RazorpayQRScreenState extends State<RazorpayQRScreen> {
+  final WardRouteRepository _repository = WardRouteRepository();
 
   Uint8List? _qrImageBytes;
-  bool _isLoadingQR = true;
+  String _orderId = '';
+  int? _billId;
+  String? _errorMessage;
+  bool _isLoadingQR = false;
 
-  int _remainingSeconds = 300; // 5 minutes
-  Timer? _countdownTimer;
+  static const Color _navy = Color(0xFF0F1E36);
+  static const Color _text = Color(0xFF1E293B);
+  static const Color _muted = Color(0xFF64748B);
 
-  bool _isVerifying = false;
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
+  Timer? _paymentStatusTimer;
+  bool _isCheckingPayment = false;
+  bool _paymentCompleted = false;
+  bool _isConfirming = false;
+  String _paymentStatusText = 'Waiting for payment confirmation ...';
 
   @override
   void initState() {
     super.initState();
     _billId = widget.billId;
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat(reverse: true);
-    _pulseAnimation =
-        Tween<double>(begin: 0.85, end: 1.0).animate(_pulseController);
-
-    _initRazorpayQR();
+    _loadQRCode();
   }
 
-  @override
-  void dispose() {
-    _countdownTimer?.cancel();
-    _pulseController.dispose();
-    super.dispose();
+  Future<int?> _ensureBillId() async {
+    if (_billId != null && _billId! > 0) return _billId;
+    try {
+      final billBody = {
+        'pickup_id': widget.pickupId,
+        'weight': widget.wasteWeight,
+        'rate': widget.disposalRate,
+        'total_amount': double.parse(widget.amount.toStringAsFixed(2)),
+        'payment_method': 'online',
+        'transaction_id': 'RZP-${DateTime.now().millisecondsSinceEpoch}',
+        'payment_gateway': 'razorpay',
+        'payment_status': 'pending',
+        'remarks': 'Razorpay QR waste collection bill',
+      };
+      debugPrint('Generating bill for Razorpay QR in screen: $billBody');
+      final billRes = await _repository.generateBill(body: billBody);
+      if (billRes != null) {
+        if (billRes['bill'] is Map) {
+          _billId = (billRes['bill']['id'] as num?)?.toInt() ??
+              int.tryParse(billRes['bill']['id']?.toString() ?? '');
+        }
+        _billId ??= (billRes['id'] as num?)?.toInt() ??
+            (billRes['bill_id'] as num?)?.toInt() ??
+            int.tryParse(billRes['id']?.toString() ?? '') ??
+            int.tryParse(billRes['bill_id']?.toString() ?? '');
+      }
+    } catch (e) {
+      debugPrint('Error generating bill in RazorpayQRScreen: $e');
+    }
+    return _billId;
   }
 
-  /// Flow:
-  /// 1. If bill_id is not yet available, calls POST /api/generate-bill/ to get bill_id
-  /// 2. Calls POST /api/razorpay/generate-qr/ with {"amount": amount, "bill_id": billId, "currency": "INR"}
-  /// 3. Extracts base64 qr_code, order_id, payment_link_url, etc.
-  Future<void> _initRazorpayQR({bool isRefresh = false}) async {
+  Future<void> _loadQRCode() async {
+    if (!mounted || _isLoadingQR || _paymentCompleted) return;
+
+    _paymentStatusTimer?.cancel();
+
     setState(() {
       _isLoadingQR = true;
+      _errorMessage = null;
+      _qrImageBytes = null;
+      _orderId = '';
     });
 
     try {
-      final now = DateTime.now();
-      _transactionId = 'RZP-${now.millisecondsSinceEpoch}';
+      // 1. Generate bill if not already provided
+      await _ensureBillId();
 
-      // 1. Generate Bill if not already provided
-      if (_billId == null || _billId! <= 0) {
-        final billBody = {
-          'pickup_id': widget.pickupId,
-          'weight': widget.wasteWeight,
-          'rate': widget.disposalRate,
-          'total_amount': double.parse(widget.amount.toStringAsFixed(2)),
-          'payment_method': 'online',
-          'transaction_id': _transactionId,
-          'payment_gateway': 'razorpay',
-          'payment_status': 'pending',
-          'remarks': 'Razorpay QR waste collection bill',
-        };
-
-        debugPrint('Generating bill for Razorpay QR...');
-        final billRes = await _repository.generateBill(body: billBody);
-        if (billRes != null) {
-          if (billRes['bill'] is Map) {
-            _billId = (billRes['bill']['id'] as num?)?.toInt() ??
-                int.tryParse(billRes['bill']['id']?.toString() ?? '');
-          }
-          _billId ??= (billRes['id'] as num?)?.toInt() ??
-              (billRes['bill_id'] as num?)?.toInt() ??
-              int.tryParse(billRes['id']?.toString() ?? '') ??
-              int.tryParse(billRes['bill_id']?.toString() ?? '');
-        }
-      }
-
-      final billIdToUse = _billId ?? widget.pickupId;
-      debugPrint('Calling /api/razorpay/generate-qr/ with bill_id=$billIdToUse, amount=${widget.amount}');
-
-      // 2. Call POST /api/razorpay/generate-qr/
-      // Body: {"amount": amount, "bill_id": billId, "currency": "INR"}
-      final qrRes = await _repository.generateRazorpayQR(
+      // 2. Generate Razorpay QR code
+      final response = await _repository.generateRazorpayQR(
         amount: widget.amount,
-        billId: billIdToUse,
-        currency: 'INR',
+        pickupId: widget.pickupId,
       );
 
-      if (qrRes != null) {
-        _orderId = qrRes['order_id']?.toString() ??
-            'order_rzp_${widget.pickupId}_${now.millisecondsSinceEpoch % 100000}';
-        _paymentLinkUrl = qrRes['payment_link_url']?.toString() ?? '';
-
-        final rawQrCode = qrRes['qr_code']?.toString() ?? '';
-        if (rawQrCode.isNotEmpty) {
-          try {
-            final base64Clean = rawQrCode.contains(',')
-                ? rawQrCode.split(',').last.trim()
-                : rawQrCode.trim();
-            _qrImageBytes = base64Decode(base64Clean);
-          } catch (e) {
-            debugPrint('Failed to decode base64 qr image: $e');
-            _qrImageBytes = null;
-          }
-        }
-
-        // UPI string fallback
-        final amountStr = widget.amount.toStringAsFixed(2);
-        _qrData = _paymentLinkUrl.isNotEmpty
-            ? _paymentLinkUrl
-            : 'upi://pay?pa=florettech@razorpay&pn=Floret%20Waste%20Management&am=$amountStr&cu=INR&tn=Pickup_${widget.pickupId}&tr=$_orderId';
-
-        _startTimer();
-      } else {
-        // Fallback to local UPI QR if API is unavailable
-        _generateFallbackQR();
-        _startTimer();
+      if (response == null) {
+        throw const FormatException('No QR response received.');
       }
-    } catch (e) {
-      debugPrint('Error generating Razorpay QR: $e');
-      _generateFallbackQR();
-      _startTimer();
+
+      final rawQRCode = response['qr_code'];
+
+      if (rawQRCode is! String || rawQRCode.trim().isEmpty) {
+        throw const FormatException('QR image missing from response.');
+      }
+
+      final imageBytes = _decodeQRImage(rawQRCode);
+
+      if (!mounted) return;
+
+      setState(() {
+        _qrImageBytes = imageBytes;
+        _orderId = response['order_id']?.toString() ?? '';
+      });
+    } catch (error) {
+      debugPrint('Failed to load payment QR: $error');
+
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = 'Unable to load payment QR. Please try again.';
+      });
     } finally {
       if (mounted) {
-        setState(() => _isLoadingQR = false);
+        setState(() {
+          _isLoadingQR = false;
+        });
+
+        if (_qrImageBytes != null && _orderId.isNotEmpty) {
+          _startPaymentStatusChecking();
+        }
       }
     }
   }
 
-  void _generateFallbackQR() {
-    final now = DateTime.now();
-    _orderId =
-        'order_rzp_${widget.pickupId}_${now.millisecondsSinceEpoch % 100000}';
-    _transactionId = 'RZP-${now.millisecondsSinceEpoch}';
-    final amountStr = widget.amount.toStringAsFixed(2);
-    _qrData =
-        'upi://pay?pa=florettech@razorpay&pn=Floret%20Waste%20Management&am=$amountStr&cu=INR&tn=Pickup_${widget.pickupId}&tr=$_transactionId';
-    _qrImageBytes = null;
-  }
+  //
+  void _startPaymentStatusChecking() {
+    _paymentStatusTimer?.cancel();
 
-  void _startTimer() {
-    _countdownTimer?.cancel();
-    _remainingSeconds = 300;
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      if (_remainingSeconds > 0) {
-        setState(() => _remainingSeconds--);
-      } else {
-        timer.cancel();
-      }
-    });
-  }
+    final currentBillId = _billId ?? widget.billId;
 
-  void _refreshQR() {
-    _initRazorpayQR(isRefresh: true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Refreshed Razorpay QR Code'),
-        duration: Duration(seconds: 2),
-      ),
+    if (_orderId.isEmpty || currentBillId == null || currentBillId <= 0) {
+      setState(() {
+        _paymentStatusText =
+            'Payment status unavailable: missing order ID or bill ID.';
+      });
+      return;
+    }
+
+    _checkPaymentStatus();
+
+    _paymentStatusTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _checkPaymentStatus(),
     );
   }
 
-  String _formatTimer(int seconds) {
-    final mins = seconds ~/ 60;
-    final secs = seconds % 60;
-    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-  }
+  Future<void> _checkPaymentStatus() async {
+    if (!mounted ||
+        _isCheckingPayment ||
+        _paymentCompleted ||
+        _isLoadingQR ||
+        _isConfirming) {
+      return;
+    }
 
-  Future<void> _handleVerifyPayment() async {
-    if (_isVerifying) return;
-    setState(() => _isVerifying = true);
+    final currentBillId = _billId ?? widget.billId;
+    final orderId = _orderId;
 
-    final txnId = _orderId.isNotEmpty ? _orderId : _transactionId;
+    if (currentBillId == null || currentBillId <= 0 || orderId.isEmpty) return;
+
+    _isCheckingPayment = true;
 
     try {
-      // 1. Process Payment
-      await _repository.processPayment(
-        pickupId: widget.pickupId,
-        paymentMethod: 'online',
+      final response = await _repository.razorpayVerify(
+        orderId: orderId,
+        billId: currentBillId,
       );
 
-      // 2. Confirm and Pay
-      final confirmPayBody = {
-        'pickup_id': widget.pickupId,
-        'collector_id': widget.collectorId,
-        'weight': widget.wasteWeight,
-        'payment_method': 'online',
-        'redeem_wallet': widget.redeemWallet,
-        'wallet_redeemed': widget.redeemWallet,
-        'apply_voucher': widget.applyCoupon,
-        'transaction_id': txnId,
-        if (_billId != null) 'bill_id': _billId,
-      };
-      await _repository.confirmAndPay(body: confirmPayBody);
-
-      // 3. Update Pickup Status to completed
-      await _repository.updatePickupStatus(
-        pickupId: widget.pickupId,
-        status: 'completed',
-      );
-
-      // 4. Collect Pickup
-      await _repository.collectPickup(
-        pickupId: widget.pickupId,
-        collectorId: widget.collectorId,
-      );
-
-      // 5. Record collection metrics to cumulative storage (updates Home screen containers)
-      await CollectionMetricsStorage().recordCollection(
-        pickupId: widget.pickupId > 0
-            ? widget.pickupId
-            : DateTime.now().millisecondsSinceEpoch,
-        weight: widget.wasteWeight,
-        amount: widget.amount,
-      );
-
-      if (!mounted) return;
-
-      // Show Payment Success Dialog
-      await _showPaymentSuccessDialog(txnId);
-
-      if (!mounted) return;
-
-      // Navigate to Payment Receipt Screen
-      await Navigator.pushNamed(
-        context,
-        PaymentReceiptScreen.routeName,
-        arguments: {
-          'totalAmount': widget.amount,
-          'paymentMode': 'Razorpay UPI QR',
-          'transactionId': txnId,
-          'dateTime': DateTime.now(),
-          'bagsCollected': widget.bagQuantity,
-          'disposalWeight': widget.wasteWeight,
-        },
-      );
-
-      if (mounted) {
-        Navigator.pop(context, true);
+      // Ignore a response for an older QR after regeneration.
+      if (!mounted ||
+          orderId != _orderId ||
+          _paymentCompleted ||
+          _isConfirming) {
+        return;
       }
+
+      final status =
+          response?['payment_status']?.toString().trim().toLowerCase() ?? '';
+
+      if (status == 'paid') {
+        final transactionId = response?['razorpay_payment_id']?.toString() ??
+            response?['transaction_id']?.toString() ??
+            'BILL-$currentBillId';
+
+        await _finalizePayment(transactionId: transactionId);
+      } else {
+        setState(() {
+          _paymentStatusText = 'Waiting for payment confirmation...';
+        });
+      }
+    } catch (error) {
+      debugPrint('Payment status check failed: $error');
+
+      if (mounted &&
+          orderId == _orderId &&
+          !_paymentCompleted &&
+          !_isConfirming) {
+        setState(() {
+          _paymentStatusText = 'Unable to check payment. Retrying...';
+        });
+      }
+    } finally {
+      _isCheckingPayment = false;
+    }
+  }
+
+  Future<void> _finalizePayment({String? transactionId}) async {
+    if (!mounted || _isConfirming || _paymentCompleted) return;
+
+    _paymentStatusTimer?.cancel();
+
+    setState(() {
+      _isConfirming = true;
+      _paymentStatusText = 'Confirming payment...';
+    });
+
+    try {
+      final currentBillId = await _ensureBillId() ?? widget.billId;
+      final txId = transactionId ??
+          (_orderId.isNotEmpty
+              ? _orderId
+              : (currentBillId != null
+                  ? 'BILL-$currentBillId'
+                  : 'ONLINE-${widget.pickupId}'));
+
+      // Finalize pickup status and cumulative metrics on backend
+      try {
+        await _repository.processPayment(
+          pickupId: widget.pickupId,
+          paymentMethod: 'online',
+        );
+        await _repository.confirmAndPay(body: {
+          'pickup_id': widget.pickupId,
+          'collector_id': widget.collectorId,
+          'weight': widget.wasteWeight,
+          'payment_method': 'online',
+          'redeem_wallet': widget.redeemWallet,
+          'wallet_redeemed': widget.redeemWallet,
+          'apply_voucher': widget.applyCoupon,
+          'transaction_id': txId,
+          if (currentBillId != null) 'bill_id': currentBillId,
+        });
+        await _repository.updatePickupStatus(
+          pickupId: widget.pickupId,
+          status: 'completed',
+        );
+        await _repository.collectPickup(
+          pickupId: widget.pickupId,
+          collectorId: widget.collectorId,
+        );
+        await CollectionMetricsStorage().recordCollection(
+          pickupId: widget.pickupId > 0
+              ? widget.pickupId
+              : DateTime.now().millisecondsSinceEpoch,
+          weight: widget.wasteWeight,
+          amount: widget.amount,
+        );
+      } catch (e) {
+        debugPrint('Error finalizing collection after Razorpay payment: $e');
+      }
+
+      _paymentCompleted = true;
+
+      if (!mounted) return;
+
+      setState(() {
+        _paymentStatusText = 'Payment confirmed successfully';
+      });
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Payment Successful'),
+          content: Text(
+            'Payment has been confirmed.\n'
+            'Transaction: $txId',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+
+      Navigator.pop(context, true);
     } catch (e) {
-      debugPrint('Error verifying Razorpay QR payment: $e');
+      debugPrint('Error in _finalizePayment: $e');
       if (mounted) {
+        setState(() {
+          _paymentStatusText = 'Waiting for payment confirmation ...';
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Payment verification issue: $e'),
-            backgroundColor: Colors.red.shade700,
+            content: Text('Payment confirmation failed: $e'),
+            backgroundColor: const Color(0xFFEF4444),
           ),
         );
       }
     } finally {
-      if (mounted) setState(() => _isVerifying = false);
+      if (mounted) {
+        setState(() {
+          _isConfirming = false;
+        });
+      }
     }
   }
 
-  Future<void> _showPaymentSuccessDialog(String txnId) async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dlgContext) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-        ),
-        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 68,
-              height: 68,
-              decoration: const BoxDecoration(
-                color: Color(0xFFDCFCE7),
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.check_circle_rounded,
-                  color: Color(0xFF10B981),
-                  size: 42,
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Payment Verified!',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '₹${widget.amount.toStringAsFixed(2)} received successfully via Razorpay UPI QR.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF64748B),
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Ref: $txnId',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF475569),
-                ),
-              ),
-            ),
-            const SizedBox(height: 22),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(dlgContext),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F1E36),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'View Receipt',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  @override
+  void dispose() {
+    _paymentStatusTimer?.cancel();
+    super.dispose();
   }
 
-  void _showAlternativeCheckoutModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => SafeArea(
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Razorpay Payment Options',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F1E36),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'SECURE',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'If customer cannot scan QR, choose an alternative:',
-                style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 16),
-              if (_paymentLinkUrl.isNotEmpty) ...[
-                _buildCheckoutOptionTile(
-                  icon: Icons.link_rounded,
-                  title: 'Open Razorpay Payment Link',
-                  subtitle: _paymentLinkUrl,
-                  onTap: () async {
-                    Navigator.pop(ctx);
-                    final uri = Uri.parse(_paymentLinkUrl);
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri,
-                          mode: LaunchMode.externalApplication);
-                    }
-                  },
-                ),
-                const SizedBox(height: 10),
-              ],
-              _buildCheckoutOptionTile(
-                icon: Icons.alternate_email_rounded,
-                title: 'Enter Customer UPI ID',
-                subtitle: 'Send collect request to GPay/PhonePe',
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _showEnterUpiIdDialog();
-                },
-              ),
-              const SizedBox(height: 10),
-              _buildCheckoutOptionTile(
-                icon: Icons.credit_card_rounded,
-                title: 'Debit / Credit Card',
-                subtitle: 'Visa, MasterCard, RuPay accepted',
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _handleVerifyPayment();
-                },
-              ),
-              const SizedBox(height: 10),
-              _buildCheckoutOptionTile(
-                icon: Icons.account_balance_rounded,
-                title: 'NetBanking / Mobile Wallet',
-                subtitle: 'All major Indian banks supported',
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _handleVerifyPayment();
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Uint8List _decodeQRImage(String rawQRCode) {
+    final value = rawQRCode.trim();
+    late final String encodedImage;
 
-  Widget _buildCheckoutOptionTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: const Color(0xFF2563EB), size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                size: 14, color: Color(0xFF94A3B8)),
-          ],
-        ),
-      ),
-    );
-  }
+    if (value.startsWith('data:')) {
+      final commaIndex = value.indexOf(',');
 
-  void _showEnterUpiIdDialog() {
-    final upiCtrl = TextEditingController(text: 'customer@okaxis');
-    showDialog(
-      context: context,
-      builder: (dlgCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Send UPI Collect Request',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter customer UPI ID (VPA):',
-              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: upiCtrl,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.alternate_email_rounded, size: 20),
-                hintText: 'e.g. mobile@upi',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xFF0F1E36), width: 1.5),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dlgCtx),
-            child: const Text('Cancel',
-                style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dlgCtx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      'Payment collect request sent to ${upiCtrl.text.trim()}'),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F1E36),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Send Request',
-                style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      if (commaIndex == -1) {
+        throw const FormatException('Invalid QR image data.');
+      }
+
+      final metadata = value.substring(0, commaIndex).toLowerCase();
+
+      if (!metadata.startsWith('data:image/') ||
+          !metadata.contains(';base64')) {
+        throw const FormatException('Expected a base64 image.');
+      }
+
+      encodedImage = value.substring(commaIndex + 1);
+    } else {
+      encodedImage = value;
+    }
+
+    final bytes = base64Decode(
+      encodedImage.replaceAll(RegExp(r'\s+'), ''),
     );
+
+    if (bytes.isEmpty) {
+      throw const FormatException('QR image is empty.');
+    }
+
+    return bytes;
   }
 
   @override
   Widget build(BuildContext context) {
     final formattedAmount = '₹${widget.amount.toStringAsFixed(2)}';
-    final isExpired = _remainingSeconds <= 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Color(0xFF1E293B), size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: _text,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.qr_code_2_rounded, color: Color(0xFF0F1E36), size: 22),
-            SizedBox(width: 8),
-            Text(
-              'Razorpay UPI QR',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 14),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F1E36),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.circle, color: Color(0xFF10B981), size: 6),
-                SizedBox(width: 5),
-                Text(
-                  'SECURE',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
+        title: const Text(
+          'Payment QR',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: _text,
           ),
-        ],
+        ),
       ),
       body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 24),
         child: Column(
           children: [
-            // 1. Razorpay Navy Gradient Merchant Header
             _buildMerchantHeader(formattedAmount),
-
-            const SizedBox(height: 18),
-
-            // 2. High Resolution Dynamic QR Code Card
-            _buildQRCodeCard(formattedAmount, isExpired),
-
-            const SizedBox(height: 18),
-
-            // 3. Supported UPI Apps Row
-            _buildSupportedUPIAppsCard(),
-
-            const SizedBox(height: 18),
-
-            // 4. Action Buttons
+            const SizedBox(height: 24),
+            _buildQRCard(formattedAmount),
+            const SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  // Primary: Verify & Confirm Payment
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      onPressed: (_isVerifying || isExpired || _isLoadingQR)
-                          ? null
-                          : _handleVerifyPayment,
-                      icon: _isVerifying
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Icon(Icons.verified_rounded,
-                              color: Colors.white, size: 20),
-                      label: Text(
-                        _isVerifying
-                            ? 'Verifying with Razorpay...'
-                            : 'Verify & Confirm Payment',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        disabledBackgroundColor: const Color(0xFF94A3B8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Alternative Checkout Options
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      onPressed: _showAlternativeCheckoutModal,
-                      icon: const Icon(Icons.payment_rounded,
-                          size: 18, color: Color(0xFF0F1E36)),
-                      label: const Text(
-                        'Other Payment Options',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F1E36),
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                            color: Color(0xFFCBD5E1), width: 1.3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        backgroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Cancel / Change payment mode
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Cancel & Choose Cash / Wallet',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                  ),
-                ],
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Ask the customer to scan this QR code to pay '
+                '$formattedAmount.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: _muted,
+                  height: 1.5,
+                ),
               ),
             ),
-
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed:
+                      (_isLoadingQR || _isConfirming) ? null : _loadQRCode,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Generate New QR'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _navy,
+                    side: const BorderSide(
+                      color: Color(0xFFCBD5E1),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _paymentStatusText,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: _paymentCompleted ? Colors.green : Colors.blueGrey,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: (_isConfirming || _paymentCompleted)
+                      ? null
+                      : () => _finalizePayment(),
+                  icon: _isConfirming
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.white,
+                        ),
+                  label: Text(
+                    _isConfirming ? 'Confirming...' : 'Confirm payment',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF16A34A),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                        const Color(0xFF16A34A).withOpacity(0.6),
+                    disabledForegroundColor: Colors.white70,
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _isConfirming ? null : () => Navigator.pop(context),
+              child: const Text(
+                'Go Back',
+                style: TextStyle(
+                  color: _muted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -833,403 +537,51 @@ class _RazorpayQRScreenState extends State<RazorpayQRScreen>
   Widget _buildMerchantHeader(String formattedAmount) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
           colors: [
             Color(0xFF071F3D),
             Color(0xFF0D325E),
           ],
         ),
       ),
-      child: Row(
-        children: [
-          // Floret Logo
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: const EdgeInsets.all(6),
-            child: Image.asset(
-              'assets/images/floret_logo.png',
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.local_florist_rounded,
-                color: Color(0xFF10B981),
-                size: 26,
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-
-          // Merchant & Order
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'Floret Waste Mgmt',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    SizedBox(width: 6),
-                    Icon(Icons.verified_rounded,
-                        color: Color(0xFF38BDF8), size: 16),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _orderId.isNotEmpty ? 'Order: $_orderId' : 'Floret Collection',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF94A3B8),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-
-          // Amount
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formattedAmount,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              const SizedBox(height: 2),
-              const Text(
-                'via Razorpay',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF38BDF8),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQRCodeCard(String formattedAmount, bool isExpired) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
       child: Column(
         children: [
-          // Customer & Weight badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.location_on_rounded,
-                    size: 16, color: Color(0xFF64748B)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    '${widget.address} • ${widget.wasteWeight.toStringAsFixed(1)} kg',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF334155),
-                    ),
-                  ),
-                ),
-                Text(
-                  formattedAmount,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // QR Code Frame or Loader
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 234,
-                height: 234,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border:
-                      Border.all(color: const Color(0xFFCBD5E1), width: 1.5),
-                ),
-                child: _isLoadingQR
-                    ? const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                Color(0xFF0F1E36)),
-                          ),
-                          SizedBox(height: 14),
-                          Text(
-                            'Generating Razorpay QR...',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      )
-                    : (_qrImageBytes != null
-                        ? Image.memory(
-                            _qrImageBytes!,
-                            width: 210,
-                            height: 210,
-                            fit: BoxFit.contain,
-                          )
-                        : QrImageView(
-                            data: _qrData,
-                            version: QrVersions.auto,
-                            size: 210,
-                            gapless: false,
-                            eyeStyle: const QrEyeStyle(
-                              eyeShape: QrEyeShape.square,
-                              color: Color(0xFF071F3D),
-                            ),
-                            dataModuleStyle: const QrDataModuleStyle(
-                              dataModuleShape: QrDataModuleShape.square,
-                              color: Color(0xFF071F3D),
-                            ),
-                            embeddedImage: const AssetImage(
-                                'assets/images/floret_logo.png'),
-                            embeddedImageStyle: const QrEmbeddedImageStyle(
-                              size: Size(34, 34),
-                            ),
-                          )),
-              ),
-
-              // Expired overlay if timer is 0
-              if (isExpired && !_isLoadingQR)
-                Container(
-                  width: 234,
-                  height: 234,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.94),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.timer_off_rounded,
-                          size: 42, color: Color(0xFFDC2626)),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'QR Code Expired',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF1E293B),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Tap below to regenerate',
-                        style: TextStyle(
-                            fontSize: 12, color: Color(0xFF64748B)),
-                      ),
-                      const SizedBox(height: 14),
-                      ElevatedButton.icon(
-                        onPressed: _refreshQR,
-                        icon: const Icon(Icons.refresh_rounded, size: 16),
-                        label: const Text('Regenerate QR'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0F1E36),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-
-          const SizedBox(height: 14),
-
-          // Scan Instruction
           const Text(
-            'Scan with GPay, PhonePe, Paytm, or any UPI App',
+            'Floret Waste Management',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Amount to Pay',
             style: TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1E293B),
+              color: Color(0xFFCBD5E1),
             ),
           ),
-
-          const SizedBox(height: 12),
-
-          // Timer Pill & Refresh Button
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: isExpired
-                  ? const Color(0xFFFEE2E2)
-                  : const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isExpired
-                    ? const Color(0xFFFCA5A5)
-                    : const Color(0xFFBFDBFE),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (!isExpired)
-                  ScaleTransition(
-                    scale: _pulseAnimation,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF2563EB),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  )
-                else
-                  const Icon(Icons.error_outline,
-                      size: 14, color: Color(0xFFDC2626)),
-                const SizedBox(width: 8),
-                Text(
-                  isExpired
-                      ? 'Expired'
-                      : 'QR valid for ${_formatTimer(_remainingSeconds)}',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: isExpired
-                        ? const Color(0xFFDC2626)
-                        : const Color(0xFF1E40AF),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: _refreshQR,
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.refresh_rounded,
-                          size: 15, color: Color(0xFF2563EB)),
-                      SizedBox(width: 3),
-                      Text(
-                        'Refresh',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF2563EB),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          const SizedBox(height: 6),
+          Text(
+            formattedAmount,
+            style: const TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
             ),
           ),
-
-          if (_paymentLinkUrl.isNotEmpty) ...[
+          if (_orderId.isNotEmpty) ...[
             const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () async {
-                final uri = Uri.parse(_paymentLinkUrl);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              },
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.open_in_new_rounded,
-                        size: 14, color: Color(0xFF2563EB)),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'Open Payment Link',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF2563EB),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    GestureDetector(
-                      onTap: () {
-                        Clipboard.setData(
-                            ClipboardData(text: _paymentLinkUrl));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Payment link copied to clipboard'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      child: const Icon(Icons.copy_rounded,
-                          size: 14, color: Color(0xFF64748B)),
-                    ),
-                  ],
-                ),
+            Text(
+              'Order: $_orderId',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFFCBD5E1),
               ),
             ),
           ],
@@ -1238,102 +590,149 @@ class _RazorpayQRScreenState extends State<RazorpayQRScreen>
     );
   }
 
-  Widget _buildSupportedUPIAppsCard() {
-    final apps = [
-      {'name': 'Google Pay', 'color': const Color(0xFF4285F4), 'symbol': 'G'},
-      {'name': 'PhonePe', 'color': const Color(0xFF6739B7), 'symbol': 'Pe'},
-      {'name': 'Paytm', 'color': const Color(0xFF00BAF2), 'symbol': 'P'},
-      {'name': 'BHIM UPI', 'color': const Color(0xFF00897B), 'symbol': 'UPI'},
-    ];
-
+  Widget _buildQRCard(String formattedAmount) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0),
+        ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Supported UPI Applications',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF475569),
-                ),
+          if (widget.userName.trim().isNotEmpty) ...[
+            Text(
+              widget.userName,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: _text,
               ),
-              Text(
-                'Instant Settlement',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF10B981),
-                ),
+            ),
+            const SizedBox(height: 6),
+          ],
+          if (widget.address.trim().isNotEmpty) ...[
+            Text(
+              widget.address,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                color: _muted,
               ),
-            ],
+            ),
+            const SizedBox(height: 16),
+          ],
+          const Text(
+            'Scan to Pay',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: _text,
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: apps.map((app) {
-              final color = app['color'] as Color;
-              final name = app['name'] as String;
-              final symbol = app['symbol'] as String;
-
-              return Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            symbol,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                              color: color,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF334155),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+          const SizedBox(height: 20),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 280),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFE2E8F0),
                   ),
                 ),
-              );
-            }).toList(),
+                child: _buildQRContent(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            formattedAmount,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: _text,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildQRContent() {
+    if (_isLoadingQR) {
+      return const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            color: _navy,
+            strokeWidth: 2.5,
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Loading payment QR...',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: _muted),
+          ),
+        ],
+      );
+    }
+
+    if (_errorMessage != null) {
+      return _buildErrorContent(_errorMessage!);
+    }
+
+    final bytes = _qrImageBytes;
+
+    if (bytes == null) {
+      return _buildErrorContent('QR image unavailable.');
+    }
+
+    return Image.memory(
+      bytes,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.none,
+      semanticLabel: 'Payment QR code',
+      errorBuilder: (context, error, stackTrace) {
+        return _buildErrorContent(
+          'The API returned an invalid QR image.',
+        );
+      },
+    );
+  }
+
+  Widget _buildErrorContent(String message) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(
+          Icons.error_outline_rounded,
+          size: 36,
+          color: Colors.red,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 13,
+            color: _muted,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: _isLoadingQR ? null : _loadQRCode,
+          child: const Text('Retry'),
+        ),
+      ],
     );
   }
 }

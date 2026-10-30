@@ -67,7 +67,6 @@ class StartRouteBottomSheet extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Navigation icon in pastel mint circle
             Container(
               width: 64,
               height: 64,

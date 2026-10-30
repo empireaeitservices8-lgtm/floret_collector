@@ -341,11 +341,11 @@ class WardRouteRepository {
   /// Step 6 – Fetch disposal rate for a local body.
   /// GET /api/disposal-rates/?local_body_id=$localBodyId
   Future<double?> fetchDisposalRate({
-    required int localBodyId,
+    required String localBodyId,
   }) async {
     try {
       final dio = await _client();
-      final url = '${APIEndPoints.disposalRates}?local_body_id=$localBodyId';
+      final url = '${APIEndPoints.newRates}?local_body_id=$localBodyId';
       debugPrint('GET disposal-rates from ${APIEndPoints.baseUrl}$url');
       final res = await dio.get(url);
       debugPrint(
@@ -355,12 +355,62 @@ class WardRouteRepository {
           (res.data as List).isNotEmpty) {
         final first = (res.data as List).first;
         if (first is Map<String, dynamic>) {
-          return double.tryParse(first['rate_per_kg']?.toString() ?? '');
+          return double.tryParse(first['rate']?.toString() ?? '');
         }
       }
       return null;
     } catch (e) {
       debugPrint('disposal-rates error: $e');
+      return null;
+    }
+  }
+
+  /// Fetches rates from user server.
+  /// GET /api/rates-from-user/
+  Future<List<Map<String, dynamic>>> fetchRatesFromUser() async {
+    try {
+      final dio = await _client();
+      debugPrint(
+          'GET rates from ${APIEndPoints.baseUrl}${APIEndPoints.ratesFromUser}');
+      final res = await dio.get(APIEndPoints.ratesFromUser);
+      debugPrint(
+          'Fetch Rates Response Status: ${res.statusCode}, Body: ${res.data}');
+      if (res.statusCode == 200) {
+        if (res.data is Map<String, dynamic>) {
+          final list = res.data['rates'];
+          if (list is List) {
+            return list.whereType<Map<String, dynamic>>().toList();
+          }
+        } else if (res.data is List) {
+          return (res.data as List).whereType<Map<String, dynamic>>().toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('fetchRatesFromUser error: $e');
+      return [];
+    }
+  }
+
+  /// Finds rate for a specific place/localbody from /api/rates-from-user/
+  /// e.g. "Nedumangadu Municipality" -> 42.0
+  Future<double?> getDisposalRateForPlace(String placeName) async {
+    if (placeName.trim().isEmpty) return null;
+    try {
+      final rates = await fetchRatesFromUser();
+      final target = placeName.trim().toLowerCase();
+      for (final item in rates) {
+        final name = (item['name']?.toString() ?? '').trim().toLowerCase();
+        if (name.isEmpty) continue;
+        if (name == target || target.contains(name) || name.contains(target)) {
+          final rateStr = item['rate']?.toString() ?? '';
+          final val = double.tryParse(rateStr);
+          if (val != null) return val;
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('getDisposalRateForPlace error: $e');
       return null;
     }
   }
@@ -388,20 +438,41 @@ class WardRouteRepository {
     }
   }
 
+  /// GET razopray status
+  Future<Map<String, dynamic>?> razorpayVerify({
+    required String orderId,
+    required int billId,
+  }) async {
+    try {
+      final dio = await _client();
+      final url =
+          '${APIEndPoints.razorpayPaymentVerify}?order_id=$orderId&bill_id=$billId';
+      debugPrint('GET razorpay sucess from ${APIEndPoints.baseUrl}$url');
+      final res = await dio.get(url);
+      debugPrint(
+          'Fetch Razoprpay confirm: ${res.statusCode}, Body: ${res.data}');
+      if (res.statusCode == 200 && res.data is Map<String, dynamic>) {
+        return res.data as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('confirm razorpay: $e');
+      return null;
+    }
+  }
+
   /// Razorpay Dynamic QR Generation.
   /// POST /api/razorpay/generate-qr/
-  /// Body: {"amount": amount, "bill_id": billId, "currency": "INR"}
+  /// Body: {"amount": amount, "pickup_id": pickupId}
   Future<Map<String, dynamic>?> generateRazorpayQR({
     required double amount,
-    required int billId,
-    String currency = 'INR',
+    required int pickupId,
   }) async {
     try {
       final dio = await _client();
       final body = {
         'amount': amount,
-        'bill_id': billId,
-        'currency': currency,
+        'pickup_id': pickupId,
       };
       debugPrint(
           'POST generate-qr to ${APIEndPoints.baseUrl}${APIEndPoints.razorpayGenerateQr} with body: $body');

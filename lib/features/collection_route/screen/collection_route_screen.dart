@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:floret_collector/features/collection_route/repository/ward_route_repository.dart';
+import 'package:floret_collector/features/collection_route/repository/collection_history_repository.dart';
 import 'package:floret_collector/core/storage/collector_details.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'confirm_and_pay_screen.dart';
@@ -2296,6 +2296,19 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
         }
       }
 
+      // Fetch disposal rate from /api/rates-from-user/ for this place
+      final localBody = _currentStop['localBody']?.toString() ?? '';
+      final placeTitle = _currentStop['title']?.toString() ?? '';
+      double? rate;
+      if (localBody.isNotEmpty) {
+        rate = await _repository.getDisposalRateForPlace(localBody);
+      }
+      if (rate == null && placeTitle.isNotEmpty) {
+        rate = await _repository.getDisposalRateForPlace(placeTitle);
+      }
+      debugPrint(
+          '[CollectionRoute] Fetched disposal rate for "$localBody": $rate');
+
       if (!mounted) return;
 
       // Navigate to ConfirmAndPayScreen
@@ -2308,6 +2321,7 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
           'address': _currentStop['title'] ?? '',
           'wasteType': _currentStop['type'] ?? '',
           'localBody': _currentStop['localBody'] ?? '',
+          if (rate != null) 'disposalRate': rate,
         },
       );
 
