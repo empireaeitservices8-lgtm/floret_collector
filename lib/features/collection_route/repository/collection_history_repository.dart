@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:floret_collector/core/storage/collector_details.dart';
 import 'package:floret_collector/services/api_endpoints.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -53,25 +54,52 @@ class WardPickup {
     final rawPickupId =
         int.tryParse(json['pickup_id']?.toString() ?? '') ?? rawId;
 
+    final street = json['street']?.toString() ?? '';
+    final city = json['city']?.toString() ?? '';
+    final landmark = json['landmark']?.toString() ?? '';
+    String addr = (json['address']?.toString() ?? '').trim();
+    if (addr.isEmpty) {
+      final parts = [
+        if (street.isNotEmpty) street,
+        if (city.isNotEmpty) city,
+        if (landmark.isNotEmpty) landmark,
+      ];
+      addr = parts.join(', ');
+    }
+
+    final userNameStr = json['user_name']?.toString() ?? '';
+    final nameStr = json['name']?.toString() ?? '';
+    final displayName = nameStr.isNotEmpty ? nameStr : userNameStr;
+
+    String contact = json['contact_number']?.toString() ??
+        json['phone']?.toString() ??
+        json['contact']?.toString() ??
+        json['user_phone']?.toString() ??
+        '';
+    if (contact.isEmpty && userNameStr.isNotEmpty) {
+      contact =
+          userNameStr.contains('_') ? userNameStr.split('_').first : userNameStr;
+    }
+
     return WardPickup(
       id: rawId,
       pickupId: rawPickupId,
-      name: (json['user_name']?.toString() ?? json['name']?.toString() ?? '')
-          .trim(),
-      address: (json['address']?.toString() ?? '').trim(),
+      name: displayName.trim(),
+      address: addr,
       pickupDate: json['pickup_date']?.toString() ?? '',
       pickupTimeSlot: json['pickup_time_slot']?.toString() ?? '',
       status: json['status']?.toString() ?? 'pending',
-      wasteType: json['waste_type']?.toString() ?? '',
-      collector: json['collector']?.toString(),
+      wasteType: (json['waste_type'] != null &&
+              json['waste_type'].toString().isNotEmpty)
+          ? json['waste_type'].toString()
+          : 'Sanitary',
+      collector:
+          json['collector']?.toString() ?? json['collector_name']?.toString(),
       collectorVehicle: json['collector_vehicle']?.toString(),
       ward: ward ?? json['ward']?.toString(),
       localBody: localBody ?? json['local_body']?.toString(),
       district: district ?? json['district']?.toString(),
-      contactNumber: json['contact_number']?.toString() ??
-          json['phone']?.toString() ??
-          json['contact']?.toString() ??
-          json['user_phone']?.toString(),
+      contactNumber: contact,
       email: json['email']?.toString() ?? json['user_email']?.toString(),
       placement: json['placement']?.toString() ??
           json['garbage_placement']?.toString() ??
@@ -144,26 +172,68 @@ class WardRouteRepository {
 
   // ── Ward collection routes ──────────────────
 
-  /// Fetches ward routes and returns only pickups for today.
-  Future<List<WardPickup>> fetchTodaysPickups() async {
+  /// Fetches collector pickups by route and returns strictly pickups for today.
+  Future<List<WardPickup>> fetchTodaysPickups({String? collectorName}) async {
     final dio = await _client();
-    final response = await dio.get(APIEndPoints.wardCollectionRoutes);
-    final data = response.data;
-    debugPrint('ward-collection-routes data: $data');
-    if (data is! Map) {
-      throw Exception('Unexpected response format from ward-collection-routes');
-    }
-    final rawWards = (data['ward_routes'] as List<dynamic>?) ?? [];
     final today = _todayString();
-    final result = <WardPickup>[];
-    for (final rawWard in rawWards) {
-      if (rawWard is! Map<String, dynamic>) continue;
-      for (final pickup in WardRoute.fromJson(rawWard).pickups) {
-        if (pickup.pickupDate == today) result.add(pickup);
-        //  print(result.toString());
+
+    try {
+      String name = collectorName?.trim() ?? '';
+      if (name.isEmpty) {
+        final storage = CollectorLocalStorage();
+        name = await storage.getCollectorName();
       }
+      if (name.isEmpty) name = 'sanu';
+
+      final response = await dio.get(
+        APIEndPoints.collectorPickupsByRoute,
+        queryParameters: {'collector_name': name},
+      );
+      debugPrint(
+          'CollectionRoute: GET ${APIEndPoints.collectorPickupsByRoute}?collector_name=$name status: ${response.statusCode}');
+
+      if (response.data is Map && response.data['pickups'] is List) {
+        final rawPickups = response.data['pickups'] as List<dynamic>;
+        final result = <WardPickup>[];
+        for (final item in rawPickups) {
+          if (item is! Map<String, dynamic>) continue;
+          final pickup = WardPickup.fromJson(item);
+          final cleanDate = pickup.pickupDate.trim().replaceAll('/', '-');
+          final isToday = cleanDate.length >= 10 &&
+              cleanDate.substring(0, 10) == today;
+          if (isToday) {
+            result.add(pickup);
+          }
+        }
+        return result;
+      }
+    } catch (e) {
+      debugPrint('Error fetching collector pickups in WardRouteRepository: $e');
     }
-    return result;
+
+    // Fallback: ward collection routes strictly for today
+    try {
+      final response = await dio.get(APIEndPoints.wardCollectionRoutes);
+      final data = response.data;
+      if (data is Map) {
+        final rawWards = (data['ward_routes'] as List<dynamic>?) ?? [];
+        final result = <WardPickup>[];
+        for (final rawWard in rawWards) {
+          if (rawWard is! Map<String, dynamic>) continue;
+          for (final pickup in WardRoute.fromJson(rawWard).pickups) {
+            final cleanDate = pickup.pickupDate.trim().replaceAll('/', '-');
+            final isToday = cleanDate.length >= 10 &&
+                cleanDate.substring(0, 10) == today;
+            if (isToday) {
+              result.add(pickup);
+            }
+          }
+        }
+        return result;
+      }
+    } catch (_) {}
+
+    return [];
   }
 
   // @override
@@ -334,6 +404,33 @@ class WardRouteRepository {
       return null;
     } catch (e) {
       debugPrint('confirm-and-pay-data error: $e');
+      return null;
+    }
+  }
+
+  /// Fetch bag assignment for collector.
+  /// GET /api/my-bag-assignment/?collector_id=$collectorId
+  Future<Map<String, dynamic>?> fetchBagAssignment(int collectorId) async {
+    try {
+      final dio = await _client();
+      final url = '${APIEndPoints.bagAssignment}?collector_id=$collectorId';
+      debugPrint('GET bag assignment from ${APIEndPoints.baseUrl}$url');
+      final res = await dio.get(url);
+      debugPrint(
+          'Fetch Bag Assignment Status: ${res.statusCode}, Body: ${res.data}');
+      if (res.statusCode == 200) {
+        if (res.data is Map<String, dynamic>) {
+          return res.data as Map<String, dynamic>;
+        } else if (res.data is List && (res.data as List).isNotEmpty) {
+          final first = (res.data as List).first;
+          if (first is Map<String, dynamic>) {
+            return first;
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('fetchBagAssignment error: $e');
       return null;
     }
   }
@@ -570,10 +667,19 @@ class WardRouteRepository {
   Future<Map<String, dynamic>?> collectPickup({
     required int pickupId,
     required int collectorId,
+    String? status,
+    int? bagsUsed,
+    dynamic weight,
   }) async {
     try {
       final dio = await _client();
-      final body = {'pickup_id': pickupId, 'collector_id': collectorId};
+      final body = {
+        'pickup_id': pickupId,
+        'collector_id': collectorId,
+        if (status != null) 'status': status,
+        if (bagsUsed != null) 'bags_used': bagsUsed,
+        if (weight != null) 'weight': weight,
+      };
       debugPrint(
           'POST collect-pickup to ${APIEndPoints.baseUrl}${APIEndPoints.collectPickup} with body: $body');
       final res = await dio.post(APIEndPoints.collectPickup, data: body);
@@ -677,6 +783,7 @@ class WardRouteRepository {
   Future<Map<String, dynamic>?> reschedulePickup({
     required int pickupId,
     required String newDate,
+    required String reason,
   }) async {
     try {
       final dio = await _client();
@@ -685,7 +792,7 @@ class WardRouteRepository {
         'pickup_id': pickupId,
         "new_date": newDate,
         "new_time_slot": "9:00 AM – 12:00 PM",
-        "reason": "Door closed"
+        "reason": reason
       };
       debugPrint(
           'POST update-pickup-status to ${APIEndPoints.baseUrl}${APIEndPoints.reschedule} with body: $body');

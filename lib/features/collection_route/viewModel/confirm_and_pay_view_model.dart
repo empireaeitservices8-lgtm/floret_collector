@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:floret_collector/features/collection_route/repository/collection_history_repository.dart';
 import 'package:floret_collector/core/storage/collection_metrics_storage.dart';
+import 'package:floret_collector/core/storage/collector_details.dart';
 
 class VerificationPhotoItem {
   final File file;
@@ -49,6 +50,7 @@ class ConfirmAndPayViewModel extends ChangeNotifier {
   final String initialWasteType;
   final String initialLocalBody;
   final double? initialDisposalRate;
+  final int? initialRemainingBags;
 
   ConfirmAndPayViewModel({
     required this.pickupId,
@@ -57,13 +59,17 @@ class ConfirmAndPayViewModel extends ChangeNotifier {
     this.initialWasteType = '',
     this.initialLocalBody = '',
     this.initialDisposalRate,
+    this.initialRemainingBags,
   }) {
     _address = initialAddress;
     _wasteType = initialWasteType;
     _localBody = initialLocalBody;
     _disposalRate = (initialDisposalRate != null && initialDisposalRate! > 0)
         ? initialDisposalRate!
-        : 42.0;
+        : 0;
+    if (initialRemainingBags != null && initialRemainingBags! >= 0) {
+      _remainingBags = initialRemainingBags!;
+    }
   }
 
   // ── State ───────────────────────────────────
@@ -75,11 +81,14 @@ class ConfirmAndPayViewModel extends ChangeNotifier {
   String _userPhone = '';
   String _wasteType = '';
   String _localBody = '';
-  double _disposalRate = 42.00;
+  double _disposalRate = 0;
 
+  int _remainingBags = 0;
+  int _assignedBags = 0;
   int _bagQuantity = 0;
   final double _bagPrice = 7.00;
   double _wasteWeight = 5.0;
+  String _weightText = '5.0';
 
   final bool _redeemWallet = false;
   final bool _applyCoupon = false;
@@ -102,9 +111,13 @@ class ConfirmAndPayViewModel extends ChangeNotifier {
   String get localBody => _localBody;
   double get disposalRate => _disposalRate;
 
+  int get remainingBags => _remainingBags;
+  int get assignedBags => _assignedBags;
   int get bagQuantity => _bagQuantity;
+  bool get canIncrementBag => _bagQuantity < _remainingBags;
   double get bagPrice => _bagPrice;
   double get wasteWeight => _wasteWeight;
+  String get weightText => _weightText;
 
   bool get redeemWallet => _redeemWallet;
   bool get applyCoupon => _applyCoupon;
@@ -119,7 +132,31 @@ class ConfirmAndPayViewModel extends ChangeNotifier {
 
   String? get lastUploadMessage => _lastUploadMessage;
   bool get lastUploadSuccess => _lastUploadSuccess;
-  Map<String, dynamic> get paymentReceiptArguments => _paymentReceiptArguments;
+  Map<String, dynamic> get paymentReceiptArguments {
+    if (_paymentReceiptArguments.isNotEmpty) {
+      return _paymentReceiptArguments;
+    }
+    return {
+      'totalAmount': totalPayable,
+      'paymentMode': _selectedPaymentOption,
+      'transactionId': _billId != null ? 'BILL-$_billId' : 'PAY-$pickupId',
+      'dateTime': DateTime.now(),
+      'bagsCollected': _bagQuantity,
+      'disposalWeight': _wasteWeight,
+    };
+  }
+
+  void setPaymentReceiptTransactionId(String txId) {
+    _paymentReceiptArguments = {
+      'totalAmount': totalPayable,
+      'paymentMode': _selectedPaymentOption,
+      'transactionId': txId,
+      'dateTime': DateTime.now(),
+      'bagsCollected': _bagQuantity,
+      'disposalWeight': _wasteWeight,
+    };
+    notifyListeners();
+  }
 
   // ── Calculations (isolated completely from UI) ──
   double get bagsCost => _bagQuantity * _bagPrice;
@@ -169,8 +206,10 @@ class ConfirmAndPayViewModel extends ChangeNotifier {
 
   // ── Mutators ────────────────────────────────
   void incrementBagQuantity() {
-    _bagQuantity++;
-    notifyListeners();
+    if (_bagQuantity < _remainingBags) {
+      _bagQuantity++;
+      notifyListeners();
+    }
   }
 
   void decrementBagQuantity() {
@@ -181,7 +220,8 @@ class ConfirmAndPayViewModel extends ChangeNotifier {
   }
 
   void setWasteWeightFromString(String text) {
-    final val = double.tryParse(text.trim()) ?? 0.0;
+    _weightText = text.trim();
+    final val = double.tryParse(_weightText) ?? 0.0;
     if (val != _wasteWeight) {
       _wasteWeight = val;
       notifyListeners();
@@ -198,38 +238,85 @@ class ConfirmAndPayViewModel extends ChangeNotifier {
   // ── Load initial data from API ──────────────
   // Note: disposal rate is NOT fetched here; it is passed from the route screen when Collect was pressed!
   Future<void> loadInitialData() async {
-    if (pickupId <= 0) {
-      _isFetchingInitialData = false;
-      notifyListeners();
-      return;
-    }
-
     try {
-      final data = await _repository.fetchConfirmAndPayData(
-        pickupId: pickupId,
-      );
+      if (pickupId > 0) {
+        final data = await _repository.fetchConfirmAndPayData(
+          pickupId: pickupId,
+        );
 
-      if (data != null) {
-        final pickupData = data['pickup_data'] as Map<String, dynamic>?;
-        if (pickupData != null) {
-          _address = pickupData['address']?.toString() ?? _address;
-          _userName = pickupData['user_name']?.toString() ?? '';
-          _userPhone = pickupData['user_phone']?.toString() ?? '';
-          _wasteType = pickupData['waste_type']?.toString() ?? _wasteType;
-          final serverLocalBody = pickupData['local_body']?.toString();
-          if (serverLocalBody != null &&
-              serverLocalBody.isNotEmpty &&
-              _localBody.isEmpty) {
-            _localBody = serverLocalBody;
+        if (data != null) {
+          final pickupData = data['pickup_data'] as Map<String, dynamic>?;
+          if (pickupData != null) {
+            _address = pickupData['address']?.toString() ?? _address;
+            _userName = pickupData['user_name']?.toString() ?? '';
+            _userPhone = pickupData['user_phone']?.toString() ?? '';
+            _wasteType = pickupData['waste_type']?.toString() ?? _wasteType;
+            final serverLocalBody = pickupData['local_body']?.toString();
+            if (serverLocalBody != null &&
+                serverLocalBody.isNotEmpty &&
+                _localBody.isEmpty) {
+              _localBody = serverLocalBody;
+            }
+          }
+
+          // Check if confirm-and-pay-data contains remaining bags
+          final rawRemaining = data['remaining_bags'] ??
+              data['remaining_amount_of_bag'] ??
+              data['remaining_bag'] ??
+              data['bags_remaining'] ??
+              pickupData?['remaining_bags'] ??
+              pickupData?['remaining_bag'] ??
+              (data['bag_assignment'] is Map
+                  ? data['bag_assignment']['remaining_bags']
+                  : null);
+          if (rawRemaining != null) {
+            final parsed = int.tryParse(rawRemaining.toString());
+            if (parsed != null && parsed >= 0) {
+              _remainingBags = parsed;
+            }
           }
         }
       }
     } catch (e) {
       debugPrint('Error loading confirm & pay data: $e');
-    } finally {
-      _isFetchingInitialData = false;
-      notifyListeners();
     }
+
+    // Also fetch latest bag assignment for collector
+    try {
+      int effectiveCollectorId = collectorId;
+      if (effectiveCollectorId <= 0) {
+        final storage = CollectorLocalStorage();
+        final idStr = await storage.getCollectorId();
+        effectiveCollectorId = int.tryParse(idStr) ?? 0;
+      }
+      if (effectiveCollectorId > 0) {
+        final bagData =
+            await _repository.fetchBagAssignment(effectiveCollectorId);
+        if (bagData != null) {
+          final rem = (bagData['remaining_bags'] as num?)?.toInt() ??
+              int.tryParse(bagData['remaining_bags']?.toString() ?? '') ??
+              (bagData['remaining'] as num?)?.toInt();
+          final assigned = (bagData['assigned_bags'] as num?)?.toInt() ??
+              int.tryParse(bagData['assigned_bags']?.toString() ?? '');
+          if (rem != null && rem >= 0) {
+            _remainingBags = rem;
+          }
+          if (assigned != null && assigned >= 0) {
+            _assignedBags = assigned;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading bag assignment in confirm & pay: $e');
+    }
+
+    // Clamp _bagQuantity if it exceeds remainingBags
+    if (_bagQuantity > _remainingBags) {
+      _bagQuantity = _remainingBags > 0 ? _remainingBags : 0;
+    }
+
+    _isFetchingInitialData = false;
+    notifyListeners();
   }
 
   // ── Payment API processing (Zero API response in UI) ──
@@ -279,7 +366,10 @@ class ConfirmAndPayViewModel extends ChangeNotifier {
       final confirmPayBody = {
         'pickup_id': pickupId,
         'collector_id': collectorId,
-        'weight': _wasteWeight,
+        'status': 'picked',
+        'bags_used': _bagQuantity,
+        'weight':
+            _weightText.isNotEmpty ? _weightText : _wasteWeight.toString(),
         'payment_method': methodStr,
         'redeem_wallet': _redeemWallet,
         'wallet_redeemed': _redeemWallet,
@@ -298,6 +388,9 @@ class ConfirmAndPayViewModel extends ChangeNotifier {
       await _repository.collectPickup(
         pickupId: pickupId,
         collectorId: collectorId,
+        status: 'picked',
+        bagsUsed: _bagQuantity,
+        weight: _weightText.isNotEmpty ? _weightText : _wasteWeight.toString(),
       );
 
       // 6. Record collection metrics

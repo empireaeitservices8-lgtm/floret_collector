@@ -10,6 +10,10 @@ class APIEndPoints {
   static String bagDetails(int id) => '$bags$id/';
   static const String bagAssignment = '/api/my-bag-assignment/';
   static const String locations = '/api/locations/';
+  static const String collectorPickupsByRoute =
+      '/api/collector-pickups-by-route/';
+  static String getCollectorPickupsByRoute(String collectorName) =>
+      '$collectorPickupsByRoute?collector_name=${Uri.encodeComponent(collectorName)}';
   static String collectorPickupDates(dynamic collectorId) =>
       '/api/collector-pickup-dates/?collector_id=$collectorId';
 
@@ -60,7 +64,6 @@ class APIEndPoints {
   static const String uploadWastePhoto = '/api/upload-waste-photo/';
   static const String razorpayGenerateQr = '/api/razorpay/generate-qr/';
   static const String razorpayPaymentVerify = '/api/razorpay/payment-status/';
-
   //reshedule
   static const String reschedule = '/api/reschedule-pickup/';
 }

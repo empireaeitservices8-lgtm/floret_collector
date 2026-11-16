@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -218,9 +217,11 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
         return;
       }
 
-      // Exclude already-picked stops
-      final filteredPickups =
-          pickups.where((p) => p.status.toLowerCase() != 'picked').toList();
+      // Exclude already-picked stops so only unpicked ones are loaded into the route
+      final filteredPickups = pickups.where((p) {
+        final s = p.status.toLowerCase();
+        return s != 'picked' && s != 'collected' && s != 'completed';
+      }).toList();
 
       final centre = _currentLocation ?? _fallbackPosition;
 
@@ -1528,53 +1529,84 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
               ),
             ),
             Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: _pickupStops.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, idx) {
-                  final stop = _pickupStops[idx];
-                  final isSelected = idx == _currentStopIndex;
-                  return ListTile(
-                    leading: Icon(
-                      Icons.location_on,
-                      color: isSelected
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFF94A3B8),
-                    ),
-                    title: Text(
-                      stop['title'] as String,
-                      style: TextStyle(
-                        fontWeight:
-                            isSelected ? FontWeight.w800 : FontWeight.w600,
-                        color: const Color(0xFF1E293B),
+              child: Builder(
+                builder: (context) {
+                  final unpickedStops = _pickupStops.where((stop) {
+                    final isCompleted = stop['isCompleted'] as bool? ?? false;
+                    final status =
+                        (stop['status'] as String? ?? '').toLowerCase();
+                    return !isCompleted &&
+                        status != 'picked' &&
+                        status != 'collected' &&
+                        status != 'completed';
+                  }).toList();
+
+                  if (unpickedStops.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(
+                        child: Text(
+                          'No unpicked points remaining',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
-                    subtitle: Text(
-                      '${stop['name']} • ${stop['type']}',
-                      style: const TextStyle(color: Color(0xFF64748B)),
-                    ),
-                    trailing: isSelected
-                        ? const Icon(Icons.check, color: Color(0xFF10B981))
-                        : null,
-                    onTap: () {
-                      setState(() {
-                        _currentStopIndex = idx;
-                        for (int k = 0; k < _pickupStops.length; k++) {
-                          _pickupStops[k]['isNext'] = k == idx;
-                        }
-                        final sStatus =
-                            (_pickupStops[idx]['status'] as String? ?? '')
-                                .toLowerCase();
-                        _hasArrived = sStatus == 'arrived';
-                        _isNavigating = false;
-                      });
-                      Navigator.pop(ctx);
-                      _zoomToFitMarkers();
-                      _fetchRoadRoute();
-                      _enrichPickupDetails(idx);
+                    );
+                  }
+
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
+                    itemCount: unpickedStops.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, idx) {
+                      final stop = unpickedStops[idx];
+                      final actualIdx = _pickupStops.indexOf(stop);
+                      final isSelected = actualIdx == _currentStopIndex;
+                      return ListTile(
+                        leading: Icon(
+                          Icons.location_on,
+                          color: isSelected
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF94A3B8),
+                        ),
+                        title: Text(
+                          stop['title'] as String,
+                          style: TextStyle(
+                            fontWeight: isSelected
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${stop['name']} • ${stop['type']}',
+                          style: const TextStyle(color: Color(0xFF64748B)),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check, color: Color(0xFF10B981))
+                            : null,
+                        onTap: () {
+                          setState(() {
+                            _currentStopIndex = actualIdx;
+                            for (int k = 0; k < _pickupStops.length; k++) {
+                              _pickupStops[k]['isNext'] = k == actualIdx;
+                            }
+                            final sStatus =
+                                (stop['status'] as String? ?? '').toLowerCase();
+                            _hasArrived = sStatus == 'arrived';
+                            _isNavigating = false;
+                          });
+                          Navigator.pop(ctx);
+                          _zoomToFitMarkers();
+                          _fetchRoadRoute();
+                          _enrichPickupDetails(actualIdx);
+                        },
+                      );
                     },
                   );
                 },
@@ -2363,14 +2395,252 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
     }
   }
 
+  Future<String?> _showRescheduleReasonDialog() async {
+    final controller = TextEditingController();
+    String? selectedPreset;
+    String? errorText;
+
+    final presetReasons = [
+      'Customer unavailable',
+    ];
+
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.white,
+              elevation: 8,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 24,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header with icon and title
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.calendar_month_rounded,
+                              size: 22,
+                              color: Color(0xFFD97706),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Reason for Reschedule',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Please specify why this pickup is being rescheduled before selecting a new date.',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          color: Colors.grey.shade600,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Quick chip suggestions
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: presetReasons.map((preset) {
+                          final isSelected = selectedPreset == preset;
+                          return ChoiceChip(
+                            label: Text(
+                              preset,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFF334155),
+                              ),
+                            ),
+                            selected: isSelected,
+                            selectedColor: const Color(0xFF1E293B),
+                            backgroundColor: const Color(0xFFF1F5F9),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? const Color(0xFF1E293B)
+                                    : const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                            showCheckmark: false,
+                            onSelected: (selected) {
+                              setDialogState(() {
+                                if (selected) {
+                                  selectedPreset = preset;
+                                  if (preset != 'Other') {
+                                    controller.text = preset;
+                                  } else {
+                                    controller.clear();
+                                  }
+                                  errorText = null;
+                                } else {
+                                  selectedPreset = null;
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Custom text field
+                      TextField(
+                        controller: controller,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          hintText: 'Enter reason for rescheduling...',
+                          hintStyle: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade400,
+                          ),
+                          errorText: errorText,
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          contentPadding: const EdgeInsets.all(12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide:
+                                const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide:
+                                const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                                color: Color(0xFF1E293B), width: 1.5),
+                          ),
+                        ),
+                        onChanged: (val) {
+                          if (errorText != null && val.trim().isNotEmpty) {
+                            setDialogState(() {
+                              errorText = null;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Actions: Cancel & Go to date
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, null),
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF64748B),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              final text = controller.text.trim();
+                              if (text.isEmpty) {
+                                setDialogState(() {
+                                  errorText = 'Please provide a reason';
+                                });
+                                return;
+                              }
+                              Navigator.pop(ctx, text);
+                            },
+                            icon: const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              'Go to date',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E293B),
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _handleReschedule() async {
     final pickupId = (_currentStop['pickup_id'] as num?)?.toInt() ??
         (_currentStop['pickupId'] as num?)?.toInt() ??
         0;
 
+    // 1. Show reason dialog first
+    final reason = await _showRescheduleReasonDialog();
+    if (reason == null || reason.trim().isEmpty || !mounted) return;
+
+    // 2. When 'Go to date' is clicked, show calendar
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().add(const Duration(days: 1)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 30)),
       builder: (context, child) {
@@ -2395,12 +2665,7 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
     try {
       if (pickupId > 0) {
         await _repository.reschedulePickup(
-            pickupId: pickupId, newDate: formatted);
-        // await _repository.updatePickupStatus(
-        //   pickupId: pickupId,
-        //   status: 'rescheduled',
-        //   reason: 'Rescheduled to $formatted',
-        // );
+            pickupId: pickupId, newDate: formatted, reason: reason);
       }
       if (mounted) {
         _showSnack('Pickup rescheduled to $formatted');
@@ -2459,30 +2724,82 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
   }
 
   Widget _buildPickupListView() {
+    final unpickedStops = _pickupStops.where((stop) {
+      final isCompleted = stop['isCompleted'] as bool? ?? false;
+      final status = (stop['status'] as String? ?? '').toLowerCase();
+      return !isCompleted &&
+          status != 'picked' &&
+          status != 'collected' &&
+          status != 'completed';
+    }).toList();
+
+    if (unpickedStops.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFDCFCE7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  size: 32,
+                  color: Color(0xFF16A34A),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'All pickups completed!',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'No unpicked points remaining for today',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return ListView.separated(
       padding: const EdgeInsets.all(20),
-      itemCount: _pickupStops.length,
+      itemCount: unpickedStops.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final stop = _pickupStops[index];
+        final stop = unpickedStops[index];
+        final actualIndex = _pickupStops.indexOf(stop);
         final isNext = stop['isNext'] as bool;
-        final isCompleted = stop['isCompleted'] as bool;
         final status = (stop['status'] as String? ?? '').toLowerCase();
         final isArrived = status == 'arrived';
 
         return InkWell(
           onTap: () {
             setState(() {
-              _currentStopIndex = index;
+              _currentStopIndex = actualIndex;
               for (int k = 0; k < _pickupStops.length; k++) {
-                _pickupStops[k]['isNext'] = k == index;
+                _pickupStops[k]['isNext'] = k == actualIndex;
               }
               _hasArrived = isArrived;
               _isMapView = true;
             });
             _zoomToFitMarkers();
             _fetchRoadRoute();
-            _enrichPickupDetails(index);
+            _enrichPickupDetails(actualIndex);
           },
           borderRadius: BorderRadius.circular(14),
           child: Container(
@@ -2495,9 +2812,7 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
                     ? const Color(0xFF10B981)
                     : (isNext
                         ? const Color(0xFF1E293B)
-                        : (isCompleted
-                            ? const Color(0xFF16A34A)
-                            : const Color(0xFFE2E8F0))),
+                        : const Color(0xFFE2E8F0)),
                 width: (isArrived || isNext) ? 1.5 : 1.0,
               ),
             ),
@@ -2507,32 +2822,26 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: isCompleted
+                    color: isArrived
                         ? const Color(0xFFDCFCE7)
-                        : (isArrived
-                            ? const Color(0xFFDCFCE7)
-                            : (isNext
-                                ? const Color(0xFFFEE2E2)
-                                : const Color(0xFFF1F5F9))),
+                        : (isNext
+                            ? const Color(0xFFFEE2E2)
+                            : const Color(0xFFF1F5F9)),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: Icon(
-                      isCompleted
-                          ? Icons.check
-                          : (isArrived
-                              ? Icons.pin_drop_rounded
-                              : (isNext
-                                  ? Icons.location_on
-                                  : Icons.home_rounded)),
+                      isArrived
+                          ? Icons.pin_drop_rounded
+                          : (isNext
+                              ? Icons.location_on
+                              : Icons.home_rounded),
                       size: 20,
-                      color: isCompleted
-                          ? const Color(0xFF16A34A)
-                          : (isArrived
-                              ? const Color(0xFF10B981)
-                              : (isNext
-                                  ? const Color(0xFFDC2626)
-                                  : const Color(0xFF475569))),
+                      color: isArrived
+                          ? const Color(0xFF10B981)
+                          : (isNext
+                              ? const Color(0xFFDC2626)
+                              : const Color(0xFF475569)),
                     ),
                   ),
                 ),
@@ -2584,30 +2893,13 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
                     ],
                   ),
                 ),
-                if (isCompleted)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDCFCE7),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'Done',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF16A34A),
-                      ),
-                    ),
-                  )
-                else if (isArrived)
+                if (isArrived)
                   InkWell(
                     onTap: () {
                       setState(() {
-                        _currentStopIndex = index;
+                        _currentStopIndex = actualIndex;
                         for (int k = 0; k < _pickupStops.length; k++) {
-                          _pickupStops[k]['isNext'] = k == index;
+                          _pickupStops[k]['isNext'] = k == actualIndex;
                         }
                         _hasArrived = true;
                       });

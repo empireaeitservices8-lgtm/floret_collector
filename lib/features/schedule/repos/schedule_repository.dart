@@ -91,13 +91,32 @@ class ScheduleRepository {
     }
   }
 
-  /// Fetch all locations / pickups
+  /// Fetch all locations / pickups for current collector
   Future<List<LocationPickupModel>> fetchLocations() async {
     try {
-      final response = await _apiClient.get(APIEndPoints.locations);
-      debugPrint('Schedule: GET locations response: ${response.statusCode}');
-      if (response.data is List) {
-        final List<dynamic> data = response.data as List<dynamic>;
+      final name = await _collectorLocalStorage.getCollectorName();
+      final collectorName = name.trim().isNotEmpty ? name.trim() : 'sanu';
+
+      final response = await _apiClient.get(
+        APIEndPoints.collectorPickupsByRoute,
+        queryParameters: {'collector_name': collectorName},
+      );
+      debugPrint(
+          'Schedule: GET ${APIEndPoints.collectorPickupsByRoute}?collector_name=$collectorName response: ${response.statusCode}');
+
+      if (response.data is Map && response.data['pickups'] is List) {
+        final List<dynamic> data = response.data['pickups'] as List<dynamic>;
+        return data
+            .map((item) => LocationPickupModel.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ))
+            .toList();
+      }
+
+      // Fallback
+      final fallbackResponse = await _apiClient.get(APIEndPoints.locations);
+      if (fallbackResponse.data is List) {
+        final List<dynamic> data = fallbackResponse.data as List<dynamic>;
         return data
             .map((item) => LocationPickupModel.fromJson(
                   Map<String, dynamic>.from(item as Map),

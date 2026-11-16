@@ -2,6 +2,7 @@ import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/features/collection_history/repos/collection_history_repository.dart';
 import 'package:floret_collector/features/home/model/bag_assignment_model.dart';
 import 'package:floret_collector/features/home/model/bag_model.dart';
+import 'package:floret_collector/features/home/model/collector_route_pickups_model.dart';
 import 'package:floret_collector/features/home/model/location_pickup_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:floret_collector/core/storage/collector_details.dart';
@@ -41,10 +42,12 @@ class HomeViewModel extends ChangeNotifier {
   String? _errorMessage;
   List<PickupSlotModel> _slots = [];
   String _collectorName = '';
+  String _collectorUsername = '';
   String _collectorId = '';
   List<BagModel> _bags = [];
   BagAssignmentModel? _bagAssignment;
   List<LocationPickupModel> _locations = [];
+  List<AssignedRouteModel> _assignedRoutes = [];
 
   // Metrics from Collection History API
   double _historyTodayWeight = 0.0;
@@ -56,9 +59,13 @@ class HomeViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   List<PickupSlotModel> get slots => List.unmodifiable(_slots);
   String get collectorName => _collectorName;
+  String get collectorUsername => _collectorUsername;
   List<BagModel> get bags => List.unmodifiable(_bags);
   BagAssignmentModel? get bagAssignment => _bagAssignment;
   List<LocationPickupModel> get locations => List.unmodifiable(_locations);
+  List<AssignedRouteModel> get assignedRoutes =>
+      List.unmodifiable(_assignedRoutes);
+  bool get hasTodayLocations => _locations.any((loc) => loc.isToday);
 
   // Daily collection metrics
   double get todayWeight {
@@ -98,11 +105,22 @@ class HomeViewModel extends ChangeNotifier {
     final collector = await _collectorLocalStorage.getCollector();
     debugPrint('Collector Details ${collector.toString()}');
 
-    final name =
-        collector?['name']?.toString() ?? collector?['username']?.toString();
-    _collectorName = (name != null && name.trim().isNotEmpty)
-        ? name.trim()
-        : await _collectorLocalStorage.getUsername();
+    final username = collector?['username']?.toString() ??
+        collector?['user_name']?.toString();
+    final name = collector?['name']?.toString();
+
+    if (name != null && name.trim().isNotEmpty) {
+      _collectorName = name.trim();
+    } else if (username != null && username.trim().isNotEmpty) {
+      _collectorName = username.trim();
+    } else {
+      _collectorName = await _collectorLocalStorage.getUsername();
+    }
+
+    _collectorUsername = (username != null && username.trim().isNotEmpty)
+        ? username.trim()
+        : _collectorName;
+
     _collectorId = collector?['id']?.toString() ?? '';
 
     notifyListeners();
@@ -132,11 +150,10 @@ class HomeViewModel extends ChangeNotifier {
 
   // Refresh all home data
   Future<void> refresh() async {
+    await loadCollector();
     await Future.wait([
-      loadCollector().then((_) {
-        loadBagAssignment();
-        return loadTodayCollectionMetrics();
-      }),
+      loadBagAssignment(),
+      loadTodayCollectionMetrics(),
       loadLocations(),
       loadBags(),
       loadPickupSlots(showLoading: false),
@@ -208,8 +225,29 @@ class HomeViewModel extends ChangeNotifier {
   // Load today's locations/pickups
   Future<void> loadLocations() async {
     try {
-      _locations = await _repository.getLocations();
-      debugPrint('Locations loaded: ${_locations.length}');
+      if (_collectorUsername.isEmpty && _collectorName.isEmpty) {
+        await loadCollector();
+      }
+
+      final nameToUse = _collectorUsername.isNotEmpty
+          ? _collectorUsername
+          : (_collectorName.isNotEmpty
+              ? _collectorName
+              : await _collectorLocalStorage.getCollectorName());
+
+      debugPrint('Fetching collector pickups by route for: $nameToUse');
+      final routeResponse =
+          await _repository.getCollectorPickupsByRoute(nameToUse);
+
+      if (routeResponse != null) {
+        _locations = routeResponse.pickups;
+        _assignedRoutes = routeResponse.assignedRoutes;
+        debugPrint(
+            'Collector pickups loaded: ${_locations.length}, routes: ${_assignedRoutes.length}');
+      } else {
+        _locations = await _repository.getLocations();
+        debugPrint('Fallback locations loaded: ${_locations.length}');
+      }
       notifyListeners();
     } catch (e) {
       debugPrint('Unable to load locations: $e');
@@ -246,7 +284,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  // Today's pickups from locations API
+  // Today's pickups from collector route API — STRICTLY only today's date
   List<LocationPickupModel> get todayLocations {
     final list = _locations.where((loc) => loc.isToday).toList();
     list.sort(
@@ -280,6 +318,14 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   String get homeLocation {
+    if (_assignedRoutes.isNotEmpty) {
+      final route = _assignedRoutes.first;
+      if (route.localBody.isNotEmpty && route.district.isNotEmpty) {
+        return '${route.localBody}, ${route.district}';
+      }
+      if (route.district.isNotEmpty) return route.district;
+      if (route.localBody.isNotEmpty) return route.localBody;
+    }
     final loc = todayLocations.isNotEmpty
         ? todayLocations.first
         : (_locations.isNotEmpty ? _locations.first : null);
@@ -301,6 +347,11 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   String get todayWard {
+    if (_assignedRoutes.isNotEmpty) {
+      final w = _assignedRoutes.first.ward;
+      final clean = w.replaceFirst(RegExp(r'^[\s,]+'), '').trim();
+      if (clean.isNotEmpty) return clean;
+    }
     final loc = todayLocations.isNotEmpty
         ? todayLocations.first
         : (_locations.isNotEmpty ? _locations.first : null);
@@ -311,6 +362,10 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   String get todayDistrict {
+    if (_assignedRoutes.isNotEmpty &&
+        _assignedRoutes.first.district.isNotEmpty) {
+      return _assignedRoutes.first.district;
+    }
     final loc = todayLocations.isNotEmpty
         ? todayLocations.first
         : (_locations.isNotEmpty ? _locations.first : null);
@@ -327,6 +382,10 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   String get localBodyName {
+    if (_assignedRoutes.isNotEmpty &&
+        _assignedRoutes.first.localBody.isNotEmpty) {
+      return _assignedRoutes.first.localBody;
+    }
     final loc = todayLocations.isNotEmpty
         ? todayLocations.first
         : (_locations.isNotEmpty ? _locations.first : null);

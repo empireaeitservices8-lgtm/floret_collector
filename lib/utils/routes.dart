@@ -32,10 +32,8 @@ Map<String, Widget Function(BuildContext context)> appRoutes() => {
           const CollectionHistoryScreen(),
       IssuesManagementScreen.routeName: (context) =>
           const IssuesManagementScreen(),
-      DirectDisposalScreen.routeName: (context) =>
-          const DirectDisposalScreen(),
-      HelpSupportScreen.routeName: (context) =>
-          const HelpSupportScreen(),
+      DirectDisposalScreen.routeName: (context) => const DirectDisposalScreen(),
+      HelpSupportScreen.routeName: (context) => const HelpSupportScreen(),
       CollectionRouteScreen.routeName: (context) {
         final args = ModalRoute.of(context)?.settings.arguments;
         if (args is Map<String, dynamic>) {
@@ -62,11 +60,11 @@ Map<String, Widget Function(BuildContext context)> appRoutes() => {
           return ConfirmAndPayScreen(
             pickupId: (args['pickupId'] as num?)?.toInt() ?? 0,
             collectorId: (args['collectorId'] as num?)?.toInt() ?? 0,
-            address: args['address']?.toString() ?? 'Main Road',
-            wasteType: args['wasteType']?.toString() ?? 'Scheduled pickup',
-            localBody:
-                args['localBody']?.toString() ?? 'Nedumangadu Municipality',
-            disposalRate: (args['disposalRate'] as num?)?.toDouble() ?? 42.00,
+            address: args['address']?.toString() ?? '',
+            wasteType: args['wasteType']?.toString() ?? '',
+            localBody: args['localBody']?.toString() ?? '',
+            disposalRate: (args['disposalRate'] as num?)?.toDouble(),
+            remainingBags: (args['remainingBags'] as num?)?.toInt(),
           );
         }
         return const ConfirmAndPayScreen();
@@ -75,12 +73,12 @@ Map<String, Widget Function(BuildContext context)> appRoutes() => {
         final args = ModalRoute.of(context)?.settings.arguments;
         if (args is Map<String, dynamic>) {
           return PaymentReceiptScreen(
-            totalAmount: (args['totalAmount'] as num?)?.toDouble() ?? 247.80,
-            paymentMode: args['paymentMode']?.toString() ?? 'Cash',
-            transactionId: args['transactionId']?.toString() ?? 'BILL-245',
+            totalAmount: (args['totalAmount'] as num?)?.toDouble() ?? 0,
+            paymentMode: args['paymentMode']!.toString(),
+            transactionId: args['transactionId']!.toString(),
             dateTime: args['dateTime'] as DateTime?,
             bagsCollected: (args['bagsCollected'] as num?)?.toInt() ?? 0,
-            disposalWeight: (args['disposalWeight'] as num?)?.toDouble() ?? 5.0,
+            disposalWeight: (args['disposalWeight'] as num?)!.toDouble(),
           );
         }
         return const PaymentReceiptScreen();
@@ -93,12 +91,12 @@ Map<String, Widget Function(BuildContext context)> appRoutes() => {
             collectorId: (args['collectorId'] as num?)?.toInt() ?? 0,
             amount: (args['amount'] as num?)?.toDouble() ?? 0.0,
             billId: (args['billId'] as num?)?.toInt(),
-            address: args['address']?.toString() ?? 'Main Road',
+            address: args['address']?.toString() ?? '',
             userName: args['userName']?.toString() ?? '',
             userPhone: args['userPhone']?.toString() ?? '',
             wasteWeight: (args['wasteWeight'] as num?)?.toDouble() ?? 5.0,
             bagQuantity: (args['bagQuantity'] as num?)?.toInt() ?? 0,
-            disposalRate: (args['disposalRate'] as num?)?.toDouble() ?? 42.0,
+            disposalRate: (args['disposalRate'] as num?)?.toDouble() ?? 0.0,
             redeemWallet: args['redeemWallet'] as bool? ?? false,
             applyCoupon: args['applyCoupon'] as bool? ?? false,
           );

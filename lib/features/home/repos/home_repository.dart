@@ -1,5 +1,6 @@
 import 'package:floret_collector/features/home/model/bag_assignment_model.dart';
 import 'package:floret_collector/features/home/model/bag_model.dart';
+import 'package:floret_collector/features/home/model/collector_route_pickups_model.dart';
 import 'package:floret_collector/features/home/model/location_pickup_model.dart';
 import 'package:floret_collector/features/home/model/pickup_slot_model.dart';
 import 'package:floret_collector/services/api_client.dart';
@@ -12,6 +13,8 @@ abstract class HomeRepository {
   Future<BagModel> getBagDetails(int id);
   Future<BagAssignmentModel?> getBagAssignment(String collectorId);
   Future<List<LocationPickupModel>> getLocations();
+  Future<CollectorRoutePickupsResponse?> getCollectorPickupsByRoute(
+      String collectorName);
 }
 
 class HomeRepositoryImpl implements HomeRepository {
@@ -95,6 +98,30 @@ class HomeRepositoryImpl implements HomeRepository {
     } catch (e) {
       debugPrint('Error fetching locations: $e');
       return [];
+    }
+  }
+
+  @override
+  Future<CollectorRoutePickupsResponse?> getCollectorPickupsByRoute(
+      String collectorName) async {
+    try {
+      final name =
+          collectorName.trim().isNotEmpty ? collectorName.trim() : 'sanu';
+      final response = await apiClient.get(
+        APIEndPoints.collectorPickupsByRoute,
+        queryParameters: {'collector_name': name},
+      );
+      debugPrint(
+          'GET ${APIEndPoints.collectorPickupsByRoute}?collector_name=$name response: ${response.statusCode}');
+      if (response.data is Map) {
+        return CollectorRoutePickupsResponse.fromJson(
+          Map<String, dynamic>.from(response.data as Map),
+        );
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching collector pickups by route: $e');
+      return null;
     }
   }
 }

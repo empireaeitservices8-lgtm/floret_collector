@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:floret_collector/features/main/screen/main_screen.dart';
 
 class PaymentReceiptScreen extends StatelessWidget {
   static const String routeName = '/PaymentReceiptScreen';
@@ -25,147 +26,154 @@ class PaymentReceiptScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final formattedDate = DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Payment Receipt',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF1E293B),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          centerTitle: true,
+          title: const Text(
+            'Payment Receipt',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1E293B),
+            ),
           ),
         ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
 
-              // Green Success Badge with Aura
-              Container(
-                width: 90,
-                height: 90,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFDCFCE7),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Container(
-                    width: 66,
-                    height: 66,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF10B981),
-                      shape: BoxShape.circle,
+                // Green Success Badge with Aura
+                Container(
+                  width: 90,
+                  height: 90,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFDCFCE7),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 66,
+                      height: 66,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF10B981),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        size: 38,
+                        color: Colors.white,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.check,
-                      size: 38,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Payment Successful!
+                const Text(
+                  'Payment Successful!',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF10B981),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Subtitle
+                const Text(
+                  'Garbage collected and payment logged\nsuccessfully.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF64748B),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Receipt Details Card
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildReceiptRow(
+                        'Total Amount',
+                        '₹${totalAmount.toStringAsFixed(2)}',
+                        isBoldValue: true,
+                      ),
+                      const SizedBox(height: 14),
+                      _buildReceiptRow('Payment Mode', paymentMode),
+                      const SizedBox(height: 14),
+                      _buildReceiptRow('Transaction ID', transactionId),
+                      const SizedBox(height: 14),
+                      _buildReceiptRow('Date & Time', formattedDate),
+                      const SizedBox(height: 14),
+                      _buildReceiptRow(
+                        'Bags Collected',
+                        '$bagsCollected Bags',
+                      ),
+                      const SizedBox(height: 14),
+                      _buildReceiptRow(
+                        'Disposal Weight',
+                        '${disposalWeight.toStringAsFixed(1)} Kgs',
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+
+                // "Go to Home" button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        MainScreen.routeName,
+                        (route) => false,
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.home_rounded,
+                      size: 20,
                       color: Colors.white,
                     ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Payment Successful!
-              const Text(
-                'Payment Successful!',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF10B981),
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // Subtitle
-              const Text(
-                'Garbage collected and payment logged\nsuccessfully.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF64748B),
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Receipt Details Card
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
-                  children: [
-                    _buildReceiptRow(
-                      'Total Amount',
-                      '₹${totalAmount.toStringAsFixed(2)}',
-                      isBoldValue: true,
+                    label: const Text(
+                      'Go to Home',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
-                    const SizedBox(height: 14),
-                    _buildReceiptRow('Payment Mode', paymentMode),
-                    const SizedBox(height: 14),
-                    _buildReceiptRow('Transaction ID', transactionId),
-                    const SizedBox(height: 14),
-                    _buildReceiptRow('Date & Time', formattedDate),
-                    const SizedBox(height: 14),
-                    _buildReceiptRow(
-                      'Bags Collected',
-                      '$bagsCollected Bags',
-                    ),
-                    const SizedBox(height: 14),
-                    _buildReceiptRow(
-                      'Disposal Weight',
-                      '${disposalWeight.toStringAsFixed(1)} Kgs',
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-
-              // "Ok, Proceed to Next Stop" button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Return true to indicate progressing to next stop
-                    Navigator.pop(context, true);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E293B),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Ok, Proceed to Next Stop',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E293B),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-            ],
+                const SizedBox(height: 12),
+              ],
+            ),
           ),
         ),
       ),

@@ -13,6 +13,10 @@ class LocationPickupModel {
   final String pickupTimeSlot;
   final String wasteType;
   final String status;
+  final String landmark;
+  final int? userId;
+  final String? collectorName;
+  final String? createdAt;
 
   const LocationPickupModel({
     required this.id,
@@ -29,14 +33,33 @@ class LocationPickupModel {
     required this.pickupTimeSlot,
     required this.wasteType,
     required this.status,
+    this.landmark = '',
+    this.userId,
+    this.collectorName,
+    this.createdAt,
   });
 
   factory LocationPickupModel.fromJson(Map<String, dynamic> json) {
+    final rawId = (json['id'] as num?)?.toInt() ?? 0;
+    final rawPickupId = (json['pickup_id'] as num?)?.toInt() ?? rawId;
+
+    final userNameStr = json['user_name']?.toString() ?? '';
+    final nameStr = json['name']?.toString() ?? '';
+    final displayName = nameStr.isNotEmpty ? nameStr : userNameStr;
+
+    String contact = json['contact_number']?.toString() ?? '';
+    if (contact.isEmpty && userNameStr.isNotEmpty) {
+      contact =
+          userNameStr.contains('_') ? userNameStr.split('_').first : userNameStr;
+    }
+
+    final rawWasteType = json['waste_type']?.toString() ?? '';
+
     return LocationPickupModel(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      pickupId: (json['pickup_id'] as num?)?.toInt() ?? 0,
-      name: json['name']?.toString() ?? '',
-      contactNumber: json['contact_number']?.toString() ?? '',
+      id: rawId,
+      pickupId: rawPickupId,
+      name: displayName,
+      contactNumber: contact,
       street: json['street']?.toString() ?? '',
       city: json['city']?.toString() ?? '',
       state: json['state']?.toString() ?? '',
@@ -45,21 +68,25 @@ class LocationPickupModel {
       localBody: json['local_body']?.toString() ?? '',
       pickupDate: json['pickup_date']?.toString() ?? '',
       pickupTimeSlot: json['pickup_time_slot']?.toString() ?? '',
-      wasteType: json['waste_type']?.toString() ?? '',
+      wasteType: rawWasteType.isNotEmpty ? rawWasteType : 'Sanitary',
       status: json['status']?.toString() ?? 'pending',
+      landmark: json['landmark']?.toString() ?? '',
+      userId: (json['user_id'] as num?)?.toInt(),
+      collectorName: json['collector_name']?.toString(),
+      createdAt: json['created_at']?.toString(),
     );
   }
 
   bool get isToday {
     if (pickupDate.isEmpty) return false;
+    final clean = pickupDate.trim().replaceAll('/', '-');
     final now = DateTime.now();
     final todayStr =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    // pickupDate is "YYYY-MM-DD" — compare the first 10 chars directly
-    return pickupDate.length >= 10 && pickupDate.substring(0, 10) == todayStr;
+    return clean.length >= 10 && clean.substring(0, 10) == todayStr;
   }
 
   @override
   String toString() =>
-      'LocationPickupModel(id: $id, name: $name, status: $status, date: $pickupDate)';
+      'LocationPickupModel(id: $id, pickupId: $pickupId, name: $name, status: $status, date: $pickupDate)';
 }

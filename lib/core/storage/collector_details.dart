@@ -38,7 +38,21 @@ class CollectorLocalStorage {
     if (saved != null && saved.trim().isNotEmpty) {
       return saved.trim();
     }
-    return 'shyam';
+    return 'sanu';
+  }
+
+  Future<String> getCollectorName() async {
+    final collector = await getCollector();
+    final username = collector?['username']?.toString() ??
+        collector?['user_name']?.toString();
+    if (username != null && username.trim().isNotEmpty) {
+      return username.trim();
+    }
+    final name = collector?['name']?.toString();
+    if (name != null && name.trim().isNotEmpty) {
+      return name.trim();
+    }
+    return getUsername();
   }
 
   Future<String> getCollectorId() async {

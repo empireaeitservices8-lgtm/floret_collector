@@ -41,7 +41,8 @@ class ScheduleViewModel extends ViewModel {
           p.pickupDate.substring(0, 10) == _selectedDate;
     }).toList();
 
-    list.sort((a, b) => _statusOrder(a.status).compareTo(_statusOrder(b.status)));
+    list.sort(
+        (a, b) => _statusOrder(a.status).compareTo(_statusOrder(b.status)));
     return list;
   }
 
@@ -65,9 +66,7 @@ class ScheduleViewModel extends ViewModel {
 
   bool _isCompleted(String status) {
     final s = status.toLowerCase();
-    return s == 'picked' ||
-        s == 'collected' ||
-        s == 'completed';
+    return s == 'picked' || s == 'collected' || s == 'completed';
   }
 
   Future<void> refresh() => loadSchedule();
@@ -195,18 +194,31 @@ class ScheduleViewModel extends ViewModel {
       }
 
       // Merge dates from collector-pickup-dates and pickups, ensuring today is included
-      final todayStr = todayDateStr;
-      final mergedDates = <String>{todayStr, ...fetchedDates, ...pickupDatesSet}
-          .where((d) => d.compareTo(todayStr) >= 0)
-          .toList();
 
-      // Sort dates chronologically
+      final todayStr = todayDateStr;
+
+// Merge dates and filter out past dates
+      final mergedDates = <String>{
+        todayStr,
+        ...fetchedDates,
+        ...pickupDatesSet,
+      }.where((date) => date.compareTo(todayStr) >= 0).toList();
+
+// Sort dates chronologically
       mergedDates.sort((a, b) => a.compareTo(b));
+
       _availableDates = mergedDates;
 
-      // Default selection to today if available, or first date
+// Default selection to today if available,
+// otherwise select the next available date
+
+      // Default selection to today if it has pickups, otherwise latest date with pickups
       if (_selectedDate.isEmpty || !_availableDates.contains(_selectedDate)) {
-        if (_availableDates.contains(todayStr)) {
+        if (pickupDatesSet.contains(todayStr)) {
+          _selectedDate = todayStr;
+        } else if (pickupDatesSet.isNotEmpty) {
+          _selectedDate = pickupDatesSet.last;
+        } else if (_availableDates.contains(todayStr)) {
           _selectedDate = todayStr;
         } else if (_availableDates.isNotEmpty) {
           _selectedDate = _availableDates.first;

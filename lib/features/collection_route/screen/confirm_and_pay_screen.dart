@@ -12,6 +12,7 @@ class ConfirmAndPayScreen extends StatefulWidget {
   final String wasteType;
   final String localBody;
   final double? disposalRate;
+  final int? remainingBags;
 
   const ConfirmAndPayScreen({
     super.key,
@@ -21,6 +22,7 @@ class ConfirmAndPayScreen extends StatefulWidget {
     this.wasteType = '',
     this.localBody = '',
     this.disposalRate,
+    this.remainingBags,
   });
 
   @override
@@ -42,6 +44,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
       initialWasteType: widget.wasteType,
       initialLocalBody: widget.localBody,
       initialDisposalRate: widget.disposalRate,
+      initialRemainingBags: widget.remainingBags,
     );
 
     _weightController.addListener(_onWeightChanged);
@@ -93,8 +96,19 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
       arguments: _viewModel.razorpayQRArguments,
     );
 
-    if (result == true && mounted) {
-      Navigator.pop(context, true);
+    if (result != null && result != false && mounted) {
+      if (result is String) {
+        _viewModel.setPaymentReceiptTransactionId(result);
+      }
+      final navResult = await Navigator.pushNamed(
+        context,
+        PaymentReceiptScreen.routeName,
+        arguments: _viewModel.paymentReceiptArguments,
+      );
+
+      if (navResult == true && mounted) {
+        Navigator.pop(context, true);
+      }
     }
   }
 
@@ -337,26 +351,65 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Waste Bag',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E293B),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Waste Bag',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _viewModel.remainingBags > 0
+                            ? const Color(0xFFDCFCE7)
+                            : const Color(0xFFFEE2E2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${_viewModel.remainingBags} Remaining',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _viewModel.remainingBags > 0
+                              ? const Color(0xFF16A34A)
+                              : const Color(0xFFDC2626),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                _viewModel.bagPriceLabel,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF64748B),
+                const SizedBox(height: 3),
+                Text(
+                  _viewModel.bagPriceLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  'Remaining bags available: ${_viewModel.remainingBags}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _viewModel.remainingBags > 0
+                        ? const Color(0xFF16A34A)
+                        : const Color(0xFFDC2626),
+                  ),
+                ),
+              ],
+            ),
           ),
           Row(
             children: [
@@ -377,9 +430,12 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
                 ),
               ),
               IconButton(
-                onPressed: _viewModel.incrementBagQuantity,
+                onPressed: _viewModel.canIncrementBag
+                    ? _viewModel.incrementBagQuantity
+                    : null,
                 icon: const Icon(Icons.add_circle_outline, size: 24),
                 color: const Color(0xFF1E293B),
+                disabledColor: const Color(0xFFCBD5E1),
               ),
             ],
           ),

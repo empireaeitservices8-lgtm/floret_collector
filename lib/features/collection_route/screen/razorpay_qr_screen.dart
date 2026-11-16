@@ -271,6 +271,8 @@ class _RazorpayQRScreenState extends State<RazorpayQRScreen> {
         await _repository.confirmAndPay(body: {
           'pickup_id': widget.pickupId,
           'collector_id': widget.collectorId,
+          'status': 'picked',
+          'bags_used': widget.bagQuantity,
           'weight': widget.wasteWeight,
           'payment_method': 'online',
           'redeem_wallet': widget.redeemWallet,
@@ -286,6 +288,9 @@ class _RazorpayQRScreenState extends State<RazorpayQRScreen> {
         await _repository.collectPickup(
           pickupId: widget.pickupId,
           collectorId: widget.collectorId,
+          status: 'picked',
+          bagsUsed: widget.bagQuantity,
+          weight: widget.wasteWeight,
         );
         await CollectionMetricsStorage().recordCollection(
           pickupId: widget.pickupId > 0
@@ -326,7 +331,7 @@ class _RazorpayQRScreenState extends State<RazorpayQRScreen> {
 
       if (!mounted) return;
 
-      Navigator.pop(context, true);
+      Navigator.pop(context, txId);
     } catch (e) {
       debugPrint('Error in _finalizePayment: $e');
       if (mounted) {
@@ -393,30 +398,35 @@ class _RazorpayQRScreenState extends State<RazorpayQRScreen> {
   Widget build(BuildContext context) {
     final formattedAmount = '₹${widget.amount.toStringAsFixed(2)}';
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: _text,
-            size: 20,
+    return PopScope(
+      canPop: !_isConfirming && !_paymentCompleted,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          leading: (_isConfirming || _paymentCompleted)
+              ? null
+              : IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: _text,
+                    size: 20,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+          title: const Text(
+            'Payment QR',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: _text,
+            ),
           ),
-          onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Payment QR',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: _text,
-          ),
-        ),
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 24),
         child: Column(
@@ -517,21 +527,24 @@ class _RazorpayQRScreenState extends State<RazorpayQRScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: _isConfirming ? null : () => Navigator.pop(context),
-              child: const Text(
-                'Go Back',
-                style: TextStyle(
-                  color: _muted,
-                  fontWeight: FontWeight.w600,
+            if (!_paymentCompleted) ...[
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _isConfirming ? null : () => Navigator.pop(context),
+                child: const Text(
+                  'Go Back',
+                  style: TextStyle(
+                    color: _muted,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildMerchantHeader(String formattedAmount) {
