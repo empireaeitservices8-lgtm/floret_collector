@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:floret_collector/core/storage/collection_metrics_storage.dart';
 import 'package:floret_collector/features/login/model/login_model.dart';
 import 'package:floret_collector/features/login/model/user_model.dart';
 import 'package:floret_collector/services/auth_services.dart';
@@ -44,7 +45,8 @@ class LoginRepositoryImpl implements LoginRepository {
   }
 
   @override
-  Future<void> logout() {
+  Future<void> logout() async {
+    await CollectionMetricsStorage().clearMetrics();
     return tokenStorage.deleteToken();
   }
 }

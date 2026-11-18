@@ -146,12 +146,60 @@ Widget buildPaymentInfoCard({
           ),
           child: Column(
             children: [
+              if (vm.bagQuantity > 0) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Waste Bags (${vm.bagQuantity} × ₹${vm.bagPrice.toInt()}):',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      '+ ₹${vm.bagsCost.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF0F172A),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Disposal Fee (${vm.weight.toStringAsFixed(1)} kg × ₹${vm.rate.toStringAsFixed(2)}):',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      '₹${vm.disposalFee.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF0F172A),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Subtotal (Weight × Rate):',
-                    style: TextStyle(
+                  Text(
+                    vm.bagQuantity > 0
+                        ? 'Subtotal:'
+                        : 'Subtotal (Weight × Rate):',
+                    style: const TextStyle(
                       fontSize: 13,
                       color: Color(0xFF64748B),
                       fontWeight: FontWeight.w500,

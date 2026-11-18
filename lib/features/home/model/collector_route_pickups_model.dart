@@ -51,7 +51,7 @@ class CollectorRoutePickupsResponse {
         if (item is Map) {
           routes.add(
             AssignedRouteModel.fromJson(
-              Map<String, dynamic>.from(item as Map),
+              Map<String, dynamic>.from(item),
             ),
           );
         }
@@ -65,7 +65,7 @@ class CollectorRoutePickupsResponse {
         if (item is Map) {
           pickupsList.add(
             LocationPickupModel.fromJson(
-              Map<String, dynamic>.from(item as Map),
+              Map<String, dynamic>.from(item),
             ),
           );
         }

@@ -3,13 +3,16 @@ import '../model/main_model.dart';
 
 class MainViewModel extends ViewModel {
   int _currentIndex = 0;
+  int _tabTapCount = 0;
 
   int get currentIndex => _currentIndex;
+  int get tabTapCount => _tabTapCount;
   MainNavTab get currentTab => MainNavTab.values[_currentIndex];
 
   void setIndex(int index) {
-    if (index >= 0 && index < MainNavTab.values.length && _currentIndex != index) {
+    if (index >= 0 && index < MainNavTab.values.length) {
       _currentIndex = index;
+      _tabTapCount++;
       notifyListeners();
     }
   }

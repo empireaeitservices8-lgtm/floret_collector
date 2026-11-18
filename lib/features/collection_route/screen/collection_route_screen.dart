@@ -1559,8 +1559,8 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
 
                   return ListView.separated(
                     shrinkWrap: true,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: unpickedStops.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, idx) {
@@ -1577,9 +1577,8 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
                         title: Text(
                           stop['title'] as String,
                           style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.w800
-                                : FontWeight.w600,
+                            fontWeight:
+                                isSelected ? FontWeight.w800 : FontWeight.w600,
                             color: const Color(0xFF1E293B),
                           ),
                         ),
@@ -2518,15 +2517,18 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Custom text field
                       TextField(
                         controller: controller,
                         maxLines: 3,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Enter reason for rescheduling...',
-                          hintStyle: TextStyle(
+                          hintStyle: const TextStyle(
                             fontSize: 13,
-                            color: Colors.grey.shade400,
+                            color: Colors.grey,
                           ),
                           errorText: errorText,
                           filled: true,
@@ -2545,7 +2547,9 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(
-                                color: Color(0xFF1E293B), width: 1.5),
+                              color: Color(0xFF1E293B),
+                              width: 1.5,
+                            ),
                           ),
                         ),
                         onChanged: (val) {
@@ -2833,9 +2837,7 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
                     child: Icon(
                       isArrived
                           ? Icons.pin_drop_rounded
-                          : (isNext
-                              ? Icons.location_on
-                              : Icons.home_rounded),
+                          : (isNext ? Icons.location_on : Icons.home_rounded),
                       size: 20,
                       color: isArrived
                           ? const Color(0xFF10B981)

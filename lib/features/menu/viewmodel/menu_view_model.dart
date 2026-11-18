@@ -15,14 +15,22 @@ class MenuViewModel extends ViewModel {
 
   UserProfileModel get profile => _profile;
 
-  Future<void> loadProfile() async {
-    isLoading = true;
-    notifyListeners();
+  Future<void> loadProfile({bool isPullToRefresh = false}) async {
+    if (!isPullToRefresh) {
+      isLoading = true;
+      notifyListeners();
+    }
 
-    _profile = await _repository.fetchUserProfile();
-
-    isLoading = false;
-    notifyListeners();
+    try {
+      _profile = await _repository.fetchUserProfile();
+    } catch (e) {
+      debugPrint('Error loading user profile: $e');
+    } finally {
+      if (!isPullToRefresh) {
+        isLoading = false;
+      }
+      notifyListeners();
+    }
   }
 
   Future<Map<String, dynamic>?> fetchVehicleAssignment({String? collectorId}) async {

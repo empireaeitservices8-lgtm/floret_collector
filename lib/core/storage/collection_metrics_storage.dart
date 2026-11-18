@@ -145,15 +145,32 @@ class CollectionMetricsStorage extends ChangeNotifier {
     }
   }
 
-  /// Clears today's collection metrics (e.g. for testing or reset).
-  Future<void> clearTodayMetrics() async {
+  /// Clears collection metrics (weight & payment amount) from persistent storage and in-memory state.
+  Future<void> clearMetrics() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        if (key.startsWith('today_collections_') ||
+            key == 'today_weight' ||
+            key == 'today_amount' ||
+            key == 'total_weight' ||
+            key == 'total_amount' ||
+            key == 'collected_amount') {
+          await prefs.remove(key);
+        }
+      }
       await prefs.remove(_getTodayKey());
       _todayWeight = 0.0;
       _todayAmount = 0.0;
       _todayPickupsCount = 0;
+      _isLoaded = false;
       notifyListeners();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[CollectionMetricsStorage] Error clearing metrics: $e');
+    }
   }
+
+  /// Clears today's collection metrics (e.g. for testing or reset).
+  Future<void> clearTodayMetrics() => clearMetrics();
 }

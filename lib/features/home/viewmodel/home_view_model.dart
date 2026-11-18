@@ -34,6 +34,12 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   void _onMetricsChanged() {
+    if (_metricsStorage.todayWeight == 0.0 &&
+        _metricsStorage.todayAmount == 0.0) {
+      _historyTodayWeight = 0.0;
+      _historyTodayAmount = 0.0;
+      _hasHistoryMetrics = false;
+    }
     notifyListeners();
   }
 
@@ -279,14 +285,20 @@ class HomeViewModel extends ChangeNotifier {
       case 'collected':
       case 'completed':
         return 3;
+      case 'rescheduled':
+      case 'cancelled':
+      case 'rejected':
+        return 4;
       default:
         return 2;
     }
   }
 
-  // Today's pickups from collector route API — STRICTLY only today's date
+  // Today's pickups from collector route API
   List<LocationPickupModel> get todayLocations {
-    final list = _locations.where((loc) => loc.isToday).toList();
+    final list = _locations
+        .where((loc) => loc.isToday && loc.status.toLowerCase() != 'rescheduled')
+        .toList();
     list.sort(
         (a, b) => _statusOrder(a.status).compareTo(_statusOrder(b.status)));
     return list;
@@ -296,10 +308,12 @@ class HomeViewModel extends ChangeNotifier {
   List<LocationPickupModel> get todayPendingLocations {
     return todayLocations.where((loc) {
       final s = loc.status.toLowerCase();
-      return s == 'arrived' ||
-          s == 'pending' ||
-          s == 'in_progress' ||
-          s == 'in progress';
+      return s != 'picked' &&
+          s != 'collected' &&
+          s != 'completed' &&
+          s != 'cancelled' &&
+          s != 'rejected' &&
+          s != 'rescheduled';
     }).toList();
   }
 
@@ -403,7 +417,7 @@ class HomeViewModel extends ChangeNotifier {
   int get remainingBags => _bagAssignment?.remainingBags ?? 0;
   int get assignedBags => _bagAssignment?.assignedBags ?? 0;
 
-  // Sanitary pickups count for today — only picked/collected/completed count as done (arrived is still to be collected)
+  // Sanitary pickups count for today — only picked/collected/completed count as done
   int get todaySanitaryTotal => todayLocations.length;
   int get todaySanitaryCompleted => todayLocations.where((l) {
         final s = l.status.toLowerCase();

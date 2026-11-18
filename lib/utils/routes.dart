@@ -32,7 +32,19 @@ Map<String, Widget Function(BuildContext context)> appRoutes() => {
           const CollectionHistoryScreen(),
       IssuesManagementScreen.routeName: (context) =>
           const IssuesManagementScreen(),
-      DirectDisposalScreen.routeName: (context) => const DirectDisposalScreen(),
+      DirectDisposalScreen.routeName: (context) {
+        final args = ModalRoute.of(context)?.settings.arguments;
+        if (args is Map<String, dynamic>) {
+          return DirectDisposalScreen(
+            remainingBags: (args['remainingBags'] as num?)?.toInt(),
+          );
+        } else if (args is int) {
+          return DirectDisposalScreen(
+            remainingBags: args,
+          );
+        }
+        return const DirectDisposalScreen();
+      },
       HelpSupportScreen.routeName: (context) => const HelpSupportScreen(),
       CollectionRouteScreen.routeName: (context) {
         final args = ModalRoute.of(context)?.settings.arguments;

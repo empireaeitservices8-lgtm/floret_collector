@@ -204,13 +204,13 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
             const SizedBox(height: 18),
 
             // Section 1: Choose Waste Bag Quantity
-            _buildSectionHeader('1. Choose Waste Bag Quantity'),
+            buildSectionHeader('1. Choose Waste Bag Quantity'),
             const SizedBox(height: 8),
-            _buildBagQuantityCard(),
+            buildBagQuantityCard(),
             const SizedBox(height: 18),
 
             // Section 2: Localbody Disposal Location & Weight
-            _buildSectionHeader('2. Localbody Disposal Location & Weight'),
+            buildSectionHeader('2. Localbody Disposal Location & Weight'),
             const SizedBox(height: 8),
             _buildLocalbodyCard(),
             const SizedBox(height: 10),
@@ -218,7 +218,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
             const SizedBox(height: 20),
 
             // Section 3: Payment Option
-            _buildSectionHeader('3. Payment Option'),
+            buildSectionHeader('3. Payment Option'),
             const SizedBox(height: 8),
             _buildPaymentOptions(),
             if (_viewModel.isOnlinePayment) ...[
@@ -227,7 +227,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
             const SizedBox(height: 18),
 
             // Section 4: Weighing Machine Verification Photo
-            _buildSectionHeader('4. Weighing Machine Verification Photo'),
+            buildSectionHeader('4. Weighing Machine Verification Photo'),
             const SizedBox(height: 8),
             _buildPhotoVerificationSection(),
             const SizedBox(height: 18),
@@ -277,7 +277,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget buildSectionHeader(String title) {
     return Text(
       title,
       style: const TextStyle(
@@ -340,7 +340,7 @@ class _ConfirmAndPayScreenState extends State<ConfirmAndPayScreen> {
     );
   }
 
-  Widget _buildBagQuantityCard() {
+  Widget buildBagQuantityCard() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(

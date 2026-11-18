@@ -39,6 +39,7 @@ class APIEndPoints {
 
   //direct disposal
   static const String directDisposal = '/api/direct-disposal/';
+  static const String directDisposalExport = '/api/direct-disposal/export/';
 
   //help & support
   static const String helpSupport = '/api/help-support/';

@@ -1,7 +1,10 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/core/storage/collector_details.dart';
 import 'package:floret_collector/services/api_client.dart';
 import 'package:floret_collector/services/api_endpoints.dart';
+import 'package:floret_collector/services/token_storage.dart';
 import '../model/direct_disposal_model.dart';
 
 class DirectDisposalRepository {
@@ -69,6 +72,40 @@ class DirectDisposalRepository {
     return List.from(_logs);
   }
 
+  Future<Map<String, dynamic>?> fetchBagAssignment([String? collectorId]) async {
+    try {
+      String effectiveCollectorId = collectorId ?? '';
+      if (effectiveCollectorId.isEmpty) {
+        effectiveCollectorId = await _collectorLocalStorage.getCollectorId();
+      }
+      if (effectiveCollectorId.isEmpty) {
+        final collector = await _collectorLocalStorage.getCollector();
+        effectiveCollectorId = collector?['id']?.toString() ?? '';
+      }
+      if (effectiveCollectorId.isEmpty) return null;
+
+      final response = await _apiClient.get(
+        APIEndPoints.bagAssignment,
+        queryParameters: {'collector_id': effectiveCollectorId},
+      );
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      } else if (response.data is Map) {
+        return Map<String, dynamic>.from(response.data as Map);
+      } else if (response.data is List && (response.data as List).isNotEmpty) {
+        final first = (response.data as List).first;
+        if (first is Map) {
+          return Map<String, dynamic>.from(first);
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('DirectDisposalRepository fetchBagAssignment error: $e');
+      return null;
+    }
+  }
+
   Future<DirectDisposalLogModel> recordDisposal({
     required String customerName,
     required String customerPhone,
@@ -81,14 +118,15 @@ class DirectDisposalRepository {
     // int? localBody,
     // int? ward,
     required String paymentStatus,
+    int bagCount = 0,
   }) async {
     // int? resolvedLocalBody = localBody;
     // int? resolvedWard = ward;
     String username = '';
 
     username = await _collectorLocalStorage.getUsername();
-
     final collector = await _collectorLocalStorage.getCollector();
+    final collectorId = (await _collectorLocalStorage.getCollectorId()).trim();
 
     // if (collector != null) {
     //   resolvedLocalBody ??=
@@ -113,6 +151,10 @@ class DirectDisposalRepository {
       // 'local_body': resolvedLocalBody,
       // 'ward': resolvedWard,
       'payment_status': paymentStatus.trim().toLowerCase(),
+      'bag_count': bagCount,
+      'bags_count': bagCount,
+      'bags_used': bagCount,
+      if (collectorId.isNotEmpty) 'collector_id': collectorId,
       if (username.isNotEmpty) 'recorded_by': username,
     };
 
@@ -142,5 +184,90 @@ class DirectDisposalRepository {
     _logs.insert(0, createdLog);
 
     return createdLog;
+  }
+
+  Future<Response?> exportDisposalLogs({String? collectorId}) async {
+    final id = (collectorId != null && collectorId.trim().isNotEmpty)
+        ? collectorId.trim()
+        : await _collectorLocalStorage.getCollectorId();
+
+    const url = APIEndPoints.directDisposalExport;
+    debugPrint(
+        'Calling direct disposal export API (GET): $url with collector_id: $id');
+
+    String? token;
+    try {
+      if (getIt.isRegistered<TokenStorage>()) {
+        token = await getIt<TokenStorage>().getToken();
+      }
+    } catch (_) {}
+
+    final headers = <String, dynamic>{
+      'accept': '*/*',
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    try {
+      final res = await _apiClient.dio.get(
+        url,
+        queryParameters: {'collector_id': id},
+        options: Options(
+          headers: headers,
+          responseType: ResponseType.plain,
+          validateStatus: (s) => s != null && s < 500,
+        ),
+      );
+      debugPrint('Export API GET Response: status=${res.statusCode}');
+      return res;
+    } catch (e) {
+      debugPrint('Export API GET error: $e');
+      return null;
+    }
+  }
+
+  Future<Response?> downloadDisposalLogs(String savePath,
+      {String? collectorId}) async {
+    final id = (collectorId != null && collectorId.trim().isNotEmpty)
+        ? collectorId.trim()
+        : await _collectorLocalStorage.getCollectorId();
+
+    const url = APIEndPoints.directDisposalExport;
+    debugPrint(
+        'Calling dio.download: $url with collector_id: $id to $savePath');
+
+    String? token;
+    try {
+      if (getIt.isRegistered<TokenStorage>()) {
+        token = await getIt<TokenStorage>().getToken();
+      }
+    } catch (_) {}
+
+    final headers = <String, dynamic>{
+      'accept': '*/*',
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    try {
+      final res = await _apiClient.dio.download(
+        url,
+        savePath,
+        queryParameters: {'collector_id': id},
+        options: Options(
+          method: 'GET',
+          headers: headers,
+          followRedirects: true,
+          validateStatus: (s) => s != null && s < 500,
+        ),
+      );
+      debugPrint('Dio download Response: status=${res.statusCode}');
+      return res;
+    } catch (e) {
+      debugPrint('Dio download error: $e');
+      return null;
+    }
   }
 }

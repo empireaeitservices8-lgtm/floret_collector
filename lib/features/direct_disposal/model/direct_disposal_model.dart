@@ -17,6 +17,8 @@ class DirectDisposalLogModel {
   final String paymentStatus;
   final String formattedDate;
   final String? recordedBy;
+  final DateTime? createdAt;
+  final int bagCount;
 
   const DirectDisposalLogModel({
     required this.id,
@@ -35,9 +37,24 @@ class DirectDisposalLogModel {
     required this.paymentStatus,
     required this.formattedDate,
     this.recordedBy,
+    this.createdAt,
+    this.bagCount = 0,
   });
 
   bool get isPaid => paymentStatus.toUpperCase() == 'PAID';
+
+  DateTime? get dateValue {
+    if (createdAt != null) return createdAt;
+    try {
+      return DateFormat('dd MMM yyyy, hh:mm a').parse(formattedDate);
+    } catch (_) {
+      try {
+        return DateFormat('dd MMM yyyy').parse(formattedDate);
+      } catch (_) {
+        return null;
+      }
+    }
+  }
 
   factory DirectDisposalLogModel.fromJson(Map<String, dynamic> json) {
     final parsedWeight =
@@ -61,25 +78,41 @@ class DirectDisposalLogModel {
         json['created_at']?.toString() ??
         '';
     final timeStr = json['disposal_time']?.toString() ?? '';
-    String formattedDate = '';
+
+    DateTime? parsedCreatedAt;
     if (json['created_at'] != null) {
       try {
-        final dt = DateTime.parse(json['created_at'].toString()).toLocal();
-        formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(dt);
+        parsedCreatedAt =
+            DateTime.parse(json['created_at'].toString()).toLocal();
       } catch (_) {}
     }
-    if (formattedDate.isEmpty && dateStr.isNotEmpty) {
+    if (parsedCreatedAt == null && dateStr.isNotEmpty) {
       try {
-        final dt = DateTime.parse(
+        parsedCreatedAt = DateTime.parse(
             '$dateStr ${timeStr.isNotEmpty ? timeStr : "00:00:00"}');
-        formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(dt);
-      } catch (_) {
-        formattedDate = dateStr;
-      }
+      } catch (_) {}
     }
-    if (formattedDate.isEmpty) {
-      formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now());
+
+    String formattedDate = '';
+    if (parsedCreatedAt != null) {
+      formattedDate =
+          DateFormat('dd MMM yyyy, hh:mm a').format(parsedCreatedAt);
+    } else if (dateStr.isNotEmpty) {
+      formattedDate = dateStr;
+    } else {
+      parsedCreatedAt = DateTime.now();
+      formattedDate =
+          DateFormat('dd MMM yyyy, hh:mm a').format(parsedCreatedAt);
     }
+
+    final parsedBagCount = int.tryParse(json['bag_count']?.toString() ?? '') ??
+        int.tryParse(json['bags_count']?.toString() ?? '') ??
+        int.tryParse(json['bags_used']?.toString() ?? '') ??
+        int.tryParse(json['bag_quantity']?.toString() ?? '') ??
+        (json['bag_count'] as num?)?.toInt() ??
+        (json['bags_count'] as num?)?.toInt() ??
+        (json['bags_used'] as num?)?.toInt() ??
+        0;
 
     return DirectDisposalLogModel(
       id: json['id']?.toString() ?? '',
@@ -102,6 +135,8 @@ class DirectDisposalLogModel {
           (json['payment_status'] ?? 'Paid').toString().toUpperCase(),
       formattedDate: formattedDate,
       recordedBy: json['recorded_by']?.toString(),
+      createdAt: parsedCreatedAt,
+      bagCount: parsedBagCount,
     );
   }
 }

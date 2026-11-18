@@ -127,6 +127,7 @@ Widget buildNewRecordForm({
   required TextEditingController addressController,
   required TextEditingController descController,
   required TextEditingController weightController,
+  final int? remainingBags,
   required TextEditingController rateController,
   required bool isSubmitting,
   required VoidCallback onSubmit,
@@ -156,7 +157,11 @@ Widget buildNewRecordForm({
         ),
 
         const SizedBox(height: 16),
-
+        // Section 1: Choose Waste Bag Quantity
+        buildSectionHeader('1. Choose Waste Bag Quantity'),
+        const SizedBox(height: 8),
+        buildBagQuantityCard(vm),
+        const SizedBox(height: 16),
         // Card 3: Payment Info & Submit
         buildPaymentInfoCard(
           context: context,
@@ -166,6 +171,123 @@ Widget buildNewRecordForm({
         ),
 
         const SizedBox(height: 24),
+      ],
+    ),
+  );
+}
+
+Widget buildSectionHeader(String title) {
+  return Text(
+    title,
+    style: const TextStyle(
+      fontSize: 15,
+      fontWeight: FontWeight.w800,
+      color: Color(0xFF1E293B),
+    ),
+  );
+}
+
+Widget buildBagQuantityCard(
+  DirectDisposalViewModel viewModel,
+) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Waste Bag',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: viewModel.remainingBags > 0
+                          ? const Color(0xFFDCFCE7)
+                          : const Color(0xFFFEE2E2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '${viewModel.remainingBags} Remaining',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: viewModel.remainingBags > 0
+                            ? const Color(0xFF16A34A)
+                            : const Color(0xFFDC2626),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Text(
+                viewModel.bagPriceLabel,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Remaining bags available: ${viewModel.remainingBags}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: viewModel.remainingBags > 0
+                      ? const Color(0xFF16A34A)
+                      : const Color(0xFFDC2626),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Row(
+          children: [
+            IconButton(
+              onPressed: viewModel.bagQuantity > 0
+                  ? viewModel.decrementBagQuantity
+                  : null,
+              icon: const Icon(Icons.remove_circle_outline, size: 24),
+              color: const Color(0xFF1E293B),
+              disabledColor: const Color(0xFFCBD5E1),
+            ),
+            Text(
+              '${viewModel.bagQuantity}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            IconButton(
+              onPressed: viewModel.canIncrementBag
+                  ? viewModel.incrementBagQuantity
+                  : null,
+              icon: const Icon(Icons.add_circle_outline, size: 24),
+              color: const Color(0xFF1E293B),
+              disabledColor: const Color(0xFFCBD5E1),
+            ),
+          ],
+        ),
       ],
     ),
   );

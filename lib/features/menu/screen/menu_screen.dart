@@ -1,31 +1,83 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 import '../viewmodel/menu_view_model.dart';
+import '../../main/viewmodel/main_view_model.dart';
 import '../../billing_history/screen/billing_history_screen.dart';
 import '../../collection_history/screen/collection_history_screen.dart';
 import '../../issues_management/screen/issues_management_screen.dart';
 import '../../direct_disposal/screen/direct_disposal_screen.dart';
 import '../../help_support/screen/help_support_screen.dart';
 
-class MenuScreen extends StatelessWidget {
+class MenuScreen extends StatefulWidget {
   static const String routeName = '/MenuScreen';
 
   const MenuScreen({super.key});
 
   @override
+  State<MenuScreen> createState() => _MenuScreenState();
+}
+
+class _MenuScreenState extends State<MenuScreen> {
+  late final MenuViewModel _viewModel;
+  int? _lastMainIndex;
+  int? _lastTabTapCount;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = MenuViewModel();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final mainVm = Provider.of<MainViewModel?>(context);
+    if (mainVm != null) {
+      final isMenu = mainVm.currentIndex == 3;
+      final tabChanged = _lastMainIndex != null && _lastMainIndex != 3;
+      final tappedAgain =
+          _lastTabTapCount != null && _lastTabTapCount != mainVm.tabTapCount;
+
+      if (isMenu && (tabChanged || tappedAgain)) {
+        _lastMainIndex = mainVm.currentIndex;
+        _lastTabTapCount = mainVm.tabTapCount;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _viewModel.loadProfile();
+          }
+        });
+      } else {
+        _lastMainIndex = mainVm.currentIndex;
+        _lastTabTapCount = mainVm.tabTapCount;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<MenuViewModel>(
-      create: (_) => MenuViewModel(),
+    return ChangeNotifierProvider<MenuViewModel>.value(
+      value: _viewModel,
       child: Scaffold(
         backgroundColor: const Color(0xFFFAFAFA),
         body: SafeArea(
           child: Consumer<MenuViewModel>(
             builder: (context, vm, _) {
+              if (vm.isLoading) {
+                return _buildMenuShimmer();
+              }
+
               final profile = vm.profile;
               return RefreshIndicator(
-                onRefresh: vm.loadProfile,
-                color: const Color(0xFF2E7D32),
+                onRefresh: () => vm.loadProfile(isPullToRefresh: true),
+                color: const Color(0xFF2563EB),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -942,6 +994,240 @@ class MenuScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildMenuShimmer() {
+    const baseColor = Color(0xFFE2E8F0);
+    const highlightColor = Color(0xFFF8FAFC);
+
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Shimmer.fromColors(
+        baseColor: baseColor,
+        highlightColor: highlightColor,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+
+            // Header Shimmer
+            Container(
+              width: 190,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: 280,
+              height: 16,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Main Profile Card Shimmer
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Avatar Row Shimmer
+                  Row(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 140,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            width: 100,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Divider(color: Color(0xFFF1F5F9), height: 1),
+                  ),
+
+                  // Vehicle section label
+                  Container(
+                    width: 110,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Vehicle box
+                  Container(
+                    width: double.infinity,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Divider(color: Color(0xFFF1F5F9), height: 1),
+                  ),
+
+                  // Route section label
+                  Container(
+                    width: 140,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Route box
+                  Container(
+                    width: double.infinity,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Divider(color: Color(0xFFF1F5F9), height: 1),
+                  ),
+
+                  // ID & verification label
+                  Container(
+                    width: 120,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Verification box
+                  Container(
+                    width: double.infinity,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Menu Items Card Shimmer
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                children: List.generate(
+                  5,
+                  (i) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Container(
+                          width: 130 + (i % 3) * 20.0,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          width: 16,
+                          height: 16,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Logout Button Shimmer
+            Container(
+              width: double.infinity,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+
+            const SizedBox(height: 28),
+          ],
+        ),
+      ),
     );
   }
 }

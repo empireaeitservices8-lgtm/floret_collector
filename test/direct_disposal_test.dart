@@ -128,6 +128,33 @@ void main() {
       expect(vm.selectedTab, DirectDisposalTab.disposalLogs);
       expect(vm.logs.first.customerName, 'Rahul Kumar');
     });
+
+    test('Bag quantity selection and calculation in DirectDisposalViewModel', () {
+      final vm = DirectDisposalViewModel(initialRemainingBags: 5);
+
+      expect(vm.remainingBags, 5);
+      expect(vm.bagQuantity, 0);
+      expect(vm.canIncrementBag, isTrue);
+
+      vm.incrementBagQuantity();
+      expect(vm.bagQuantity, 1);
+      expect(vm.bagsCost, 7.0);
+
+      vm.setWeight(10.0);
+      vm.setRate(2.0);
+      vm.setGstRateOption('5% GST (Standard)');
+
+      // subtotal = (10 * 2) + 7 = 27.0
+      expect(vm.subtotal, 27.0);
+      // gstAmount = 27 * 0.05 = 1.35
+      expect(vm.gstAmount, 1.35);
+      // totalAmount = 27 + 1.35 = 28.35
+      expect(vm.totalAmount, 28.35);
+
+      vm.decrementBagQuantity();
+      expect(vm.bagQuantity, 0);
+      expect(vm.subtotal, 20.0);
+    });
   });
 
   group('DirectDisposalScreen Widget Tests', () {

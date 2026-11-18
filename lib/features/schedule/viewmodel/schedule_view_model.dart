@@ -38,7 +38,8 @@ class ScheduleViewModel extends ViewModel {
     final list = _allPickups.where((p) {
       if (p.pickupDate.isEmpty) return false;
       return p.pickupDate.length >= 10 &&
-          p.pickupDate.substring(0, 10) == _selectedDate;
+          p.pickupDate.substring(0, 10) == _selectedDate &&
+          p.status.toLowerCase() != 'rescheduled';
     }).toList();
 
     list.sort(

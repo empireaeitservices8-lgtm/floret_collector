@@ -957,9 +957,7 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-
             const Text(
               'No History Found',
               style: TextStyle(
@@ -1035,7 +1033,7 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
             Text(
               vm.errorMessage.isNotEmpty
                   ? vm.errorMessage
-                  : 'ClientException with SocketConnection timed out (OS Error: Connection timed out, errno = 110), address = florettech.pythonanywhere.com, port = 52088, uri=https://florettech.pythonanywhere.com/api/collector-history/?collector_id=68',
+                  : 'ClientException with SocketConnection timed out ',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 12,

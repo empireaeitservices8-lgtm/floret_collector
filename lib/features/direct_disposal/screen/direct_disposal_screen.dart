@@ -8,7 +8,12 @@ import '../viewmodel/direct_disposal_view_model.dart';
 class DirectDisposalScreen extends StatefulWidget {
   static const String routeName = '/DirectDisposalScreen';
 
-  const DirectDisposalScreen({super.key});
+  final int? remainingBags;
+
+  const DirectDisposalScreen({
+    super.key,
+    this.remainingBags,
+  });
 
   @override
   State<DirectDisposalScreen> createState() => _DirectDisposalScreenState();
@@ -85,9 +90,17 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<DirectDisposalViewModel>(
-      create: (_) => getIt.isRegistered<DirectDisposalViewModel>()
-          ? getIt<DirectDisposalViewModel>()
-          : DirectDisposalViewModel(),
+      create: (_) {
+        final vm = getIt.isRegistered<DirectDisposalViewModel>()
+            ? getIt<DirectDisposalViewModel>()
+            : DirectDisposalViewModel(
+                initialRemainingBags: widget.remainingBags,
+              );
+        if (widget.remainingBags != null) {
+          vm.setRemainingBags(widget.remainingBags!);
+        }
+        return vm;
+      },
       child: Scaffold(
         backgroundColor: const Color(0xFFFAFAFA),
         body: SafeArea(
@@ -144,10 +157,12 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
                             descController: _descController,
                             weightController: _weightController,
                             rateController: _rateController,
+                            remainingBags: widget.remainingBags,
                             isSubmitting: _isSubmitting,
                             onSubmit: () => _handleSubmit(vm),
                           )
                         : buildDisposalLogsList(
+                            context: context,
                             vm: vm,
                             searchController: _searchController,
                           ),

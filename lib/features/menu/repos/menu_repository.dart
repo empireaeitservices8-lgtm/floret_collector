@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/core/storage/collector_details.dart';
+import 'package:floret_collector/core/storage/collection_metrics_storage.dart';
 import 'package:floret_collector/services/api_client.dart';
 import 'package:floret_collector/services/api_endpoints.dart';
 import 'package:floret_collector/services/web_api_services.dart';
@@ -276,6 +277,7 @@ class MenuRepository {
     await sp.remove('saved_username');
     await sp.remove(sp_keys.keyUserName);
     await _collectorLocalStorage.clearCollector();
+    await CollectionMetricsStorage().clearMetrics();
     await _webAPIService.initTokenToHeader();
   }
 }

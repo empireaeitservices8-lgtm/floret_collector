@@ -57,4 +57,25 @@ void main() {
     expect(storage.formattedWeight, '3 kg');
     expect(storage.formattedAmount, '₹60');
   });
+
+  test('clearMetrics resets weight and amount and clears SharedPreferences on logout', () async {
+    final storage = CollectionMetricsStorage();
+
+    await storage.recordCollection(pickupId: 1, weight: 5.5, amount: 150.0);
+    expect(storage.todayWeight, 5.5);
+    expect(storage.todayAmount, 150.0);
+
+    // Clear metrics (as happens on logout)
+    await storage.clearMetrics();
+
+    expect(storage.todayWeight, 0.0);
+    expect(storage.todayAmount, 0.0);
+    expect(storage.formattedWeight, '0.0 kg');
+    expect(storage.formattedAmount, '₹0');
+
+    // Verify after reloading from SharedPreferences that keys are gone
+    await storage.loadTodayMetrics();
+    expect(storage.todayWeight, 0.0);
+    expect(storage.todayAmount, 0.0);
+  });
 }

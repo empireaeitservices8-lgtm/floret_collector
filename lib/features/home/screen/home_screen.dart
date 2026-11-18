@@ -144,7 +144,7 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 20),
 
                       // ── Next Collection Route ──
-                      _buildNextRouteCard(context, vm),
+                      //_buildNextRouteSection(context, vm),
                       const SizedBox(height: 24),
 
                       // ── Today's Collection Schedule ──
@@ -160,26 +160,26 @@ class HomeScreen extends StatelessWidget {
                               letterSpacing: -0.3,
                             ),
                           ),
-                          InkWell(
-                            onTap: () => _navigateToSchedule(context),
-                            borderRadius: BorderRadius.circular(18),
-                            child: Container(
-                              width: 34,
-                              height: 34,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEFF6FF),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFFDBEAFE),
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_forward_rounded,
-                                size: 17,
-                                color: Color(0xFF2563EB),
-                              ),
-                            ),
-                          ),
+                          // InkWell(
+                          //   onTap: () => _navigateToSchedule(context),
+                          //   borderRadius: BorderRadius.circular(18),
+                          //   child: Container(
+                          //     width: 34,
+                          //     height: 34,
+                          //     decoration: BoxDecoration(
+                          //       color: const Color(0xFFEFF6FF),
+                          //       shape: BoxShape.circle,
+                          //       border: Border.all(
+                          //         color: const Color(0xFFDBEAFE),
+                          //       ),
+                          //     ),
+                          //     child: const Icon(
+                          //       Icons.arrow_forward_rounded,
+                          //       size: 17,
+                          //       color: Color(0xFF2563EB),
+                          //     ),
+                          //   ),
+                          // ),
                         ],
                       ),
                       const SizedBox(height: 14),
@@ -217,12 +217,12 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ── Next Collection Route Card ──
-  Widget _buildNextRouteCard(BuildContext context, HomeViewModel vm) {
-    final next = vm.nextPickup;
+  // ── Next Collection Routes Section ──
+  Widget _buildNextRouteSection(BuildContext context, HomeViewModel vm) {
+    final pendingRoutes = vm.todayPendingLocations;
 
     // All today's pending pickups are done
-    if (next == null) {
+    if (pendingRoutes.isEmpty) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
@@ -282,10 +282,72 @@ class HomeScreen extends StatelessWidget {
       );
     }
 
-    final isArrived = next.status.toLowerCase() == 'arrived';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              pendingRoutes.length > 1
+                  ? 'Pending collection routes'
+                  : 'Next collection route',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1E293B),
+                letterSpacing: -0.3,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFDBEAFE)),
+              ),
+              child: Text(
+                '${pendingRoutes.length} pending',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2563EB),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        ...pendingRoutes.asMap().entries.map((entry) {
+          final index = entry.key;
+          final loc = entry.value;
+          return _buildPendingRouteCard(
+            context,
+            loc,
+            vm,
+            index: index,
+            total: pendingRoutes.length,
+          );
+        }),
+      ],
+    );
+  }
+
+  // ── Single Pending Route Card ──
+  Widget _buildPendingRouteCard(
+    BuildContext context,
+    LocationPickupModel loc,
+    HomeViewModel vm, {
+    required int index,
+    required int total,
+  }) {
+    final statusLower = loc.status.toLowerCase();
+    final isArrived = statusLower == 'arrived';
+    final routeName = loc.street.isNotEmpty ? loc.street : loc.city;
 
     return Container(
       width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -301,14 +363,43 @@ class HomeScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Next collection route',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1E293B),
+              Expanded(
+                child: Row(
+                  children: [
+                    if (total > 1) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Route ${index + 1}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF475569),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Expanded(
+                      child: Text(
+                        total > 1 ? routeName : 'Next collection route',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E293B),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(width: 8),
               if (isArrived)
                 Container(
                   padding:
@@ -333,14 +424,40 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                )
+              else
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.hourglass_bottom,
+                          size: 13, color: Color(0xFFD97706)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Pending',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFD97706),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
           const Divider(
-            color: Colors.grey,
+            color: Color(0xFFE2E8F0),
+            height: 1,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           // Route row
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,24 +473,20 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      (next.street.isNotEmpty ? next.street : next.city),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                child: Text(
+                  routeName,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
+          // Time row
           Row(
             children: [
               const Icon(Icons.alarm, size: 18, color: Color(0xFF475569)),
@@ -386,9 +499,9 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                next.pickupTimeSlot,
+                loc.pickupTimeSlot,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF1E293B),
                 ),
@@ -409,34 +522,31 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                next.wasteType,
+                loc.wasteType,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF1E293B),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 26),
+          const SizedBox(height: 18),
           // Start Route / Make collection Button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
-                final routeName =
-                    next.street.isNotEmpty ? next.street : next.city;
                 if (isArrived) {
                   Navigator.pushNamed(
                     context,
                     CollectionRouteScreen.routeName,
                     arguments: {
                       'routeName': routeName,
-                      'address':
-                          next.street.isNotEmpty ? next.street : next.city,
-                      'time': next.pickupTimeSlot,
-                      'type': next.wasteType,
-                      'pickupId': next.pickupId,
+                      'address': loc.street.isNotEmpty ? loc.street : loc.city,
+                      'time': loc.pickupTimeSlot,
+                      'type': loc.wasteType,
+                      'pickupId': loc.pickupId,
                       'hasArrived': true,
                       'status': 'arrived',
                     },
@@ -445,8 +555,8 @@ class HomeScreen extends StatelessWidget {
                   StartRouteBottomSheet.show(
                     context: context,
                     route: routeName,
-                    time: next.pickupTimeSlot,
-                    type: next.wasteType,
+                    time: loc.pickupTimeSlot,
+                    type: loc.wasteType,
                     onConfirm: () {
                       Navigator.pushNamed(
                         context,
@@ -454,12 +564,12 @@ class HomeScreen extends StatelessWidget {
                         arguments: {
                           'routeName': routeName,
                           'address':
-                              next.street.isNotEmpty ? next.street : next.city,
-                          'time': next.pickupTimeSlot,
-                          'type': next.wasteType,
-                          'pickupId': next.pickupId,
+                              loc.street.isNotEmpty ? loc.street : loc.city,
+                          'time': loc.pickupTimeSlot,
+                          'type': loc.wasteType,
+                          'pickupId': loc.pickupId,
                           'hasArrived': false,
-                          'status': next.status,
+                          'status': loc.status,
                         },
                       ).then((_) => vm.refresh());
                     },
@@ -506,7 +616,16 @@ class HomeScreen extends StatelessWidget {
     LocationPickupModel loc,
     HomeViewModel vm,
   ) {
-    final isArrived = loc.status.toLowerCase() == 'arrived';
+    final statusLower = loc.status.toLowerCase();
+    final isArrived = statusLower == 'arrived';
+    final isPendingOrActive = ![
+      'picked',
+      'collected',
+      'completed',
+      'cancelled',
+      'rejected',
+      'rescheduled',
+    ].contains(statusLower);
     final statusColor = _statusColor(loc.status);
     final statusBg = _statusBgColor(loc.status);
 
@@ -631,6 +750,59 @@ class HomeScreen extends StatelessWidget {
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF10B981),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ] else if (isPendingOrActive) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  final routeName =
+                      loc.street.isNotEmpty ? loc.street : loc.city;
+                  StartRouteBottomSheet.show(
+                    context: context,
+                    route: routeName,
+                    time: loc.pickupTimeSlot,
+                    type: loc.wasteType,
+                    onConfirm: () {
+                      Navigator.pushNamed(
+                        context,
+                        CollectionRouteScreen.routeName,
+                        arguments: {
+                          'routeName': routeName,
+                          'address': routeName,
+                          'time': loc.pickupTimeSlot,
+                          'type': loc.wasteType,
+                          'pickupId': loc.pickupId,
+                          'hasArrived': false,
+                          'status': loc.status,
+                        },
+                      ).then((_) => vm.refresh());
+                    },
+                  );
+                },
+                icon: Transform.rotate(
+                  angle: 1,
+                  child: const Icon(Icons.navigation_sharp,
+                      size: 16, color: Colors.white),
+                ),
+                label: const Text(
+                  'Start route',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E293B),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -776,7 +948,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'Completed routes (Organic & domestic bio-waste)',
+                  'Completed routes',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,

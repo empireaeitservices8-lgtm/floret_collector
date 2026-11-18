@@ -2,16 +2,13 @@ import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:floret_collector/config/app_config.dart';
 import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/l10n/app_localizations.dart';
-
 import 'package:floret_collector/utils/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
 import 'package:provider/provider.dart';
-
 import 'features/splash/screen/splash_screen.dart';
 import 'providers/language_provider.dart';
 import 'providers/theme_provider.dart';
@@ -78,7 +75,6 @@ class MyApp extends StatelessWidget {
                 context.watch<LanguageProvider>().locale,
               ),
               locale: context.watch<LanguageProvider>().locale,
-
               // initialRoute: LoginScreen.route,
               // initialRoute: BottomNavigationScreen.route,
               initialRoute: SplashScreen.routeName,
