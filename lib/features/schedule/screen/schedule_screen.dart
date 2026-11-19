@@ -4,7 +4,6 @@ import 'package:floret_collector/features/home/model/location_pickup_model.dart'
 import '../viewmodel/schedule_view_model.dart';
 import 'schedule_filter_bottom_sheet.dart';
 import '../../main/viewmodel/main_view_model.dart';
-import '../../collection_route/screen/collection_route_screen.dart';
 
 class ScheduleScreen extends StatelessWidget {
   static const String routeName = '/ScheduleScreen';
@@ -434,49 +433,6 @@ class ScheduleScreen extends StatelessWidget {
               ),
             ),
           ),
-          if (isArrived) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  final routeName =
-                      pickup.street.isNotEmpty ? pickup.street : pickup.city;
-                  Navigator.pushNamed(
-                    context,
-                    CollectionRouteScreen.routeName,
-                    arguments: {
-                      'routeName': routeName,
-                      'address': routeName,
-                      'time': pickup.pickupTimeSlot,
-                      'type': pickup.wasteType,
-                      'pickupId': pickup.pickupId,
-                      'hasArrived': true,
-                      'status': 'arrived',
-                    },
-                  ).then((_) => vm.refresh());
-                },
-                icon: const Icon(Icons.check_circle_outline_rounded,
-                    size: 18, color: Colors.white),
-                label: const Text(
-                  'Make collection',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  elevation: 0,
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );

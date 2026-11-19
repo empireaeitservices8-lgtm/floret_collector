@@ -270,11 +270,13 @@ Widget buildPaymentInfoCard({
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            onPressed: isSubmitting ? null : onSubmit,
+            onPressed:
+                (isSubmitting || vm.remainingBags <= 0) ? null : onSubmit,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E293B),
-              disabledBackgroundColor: const Color(0xFF1E293B),
+              disabledBackgroundColor: const Color(0xFF94A3B8),
               foregroundColor: Colors.white,
+              disabledForegroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -289,9 +291,11 @@ Widget buildPaymentInfoCard({
                       color: Colors.white,
                     ),
                   )
-                : const Text(
-                    'Record Disposal',
-                    style: TextStyle(
+                : Text(
+                    vm.remainingBags <= 0
+                        ? 'No bags available'
+                        : 'Record Disposal',
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,

@@ -15,6 +15,7 @@ class HomeScreen extends StatelessWidget {
   static const String routeName = '/HomeScreen';
   const HomeScreen({super.key});
 
+  // ignore: unused_element
   void _navigateToSchedule(BuildContext context) {
     try {
       final mainVm = Provider.of<MainViewModel?>(context, listen: false);
@@ -187,6 +188,8 @@ class HomeScreen extends StatelessWidget {
                       // Schedule items from locations API
                       if (vm.todayLocations.isEmpty)
                         _buildEmptySchedule()
+                      else if (vm.remainingBags <= 0)
+                        _buildEmptyBag()
                       else
                         ...vm.todayLocations
                             .map((loc) => _buildScheduleCard(context, loc, vm)),
@@ -218,6 +221,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   // ── Next Collection Routes Section ──
+  // ignore: unused_element
   Widget _buildNextRouteSection(BuildContext context, HomeViewModel vm) {
     final pendingRoutes = vm.todayPendingLocations;
 
@@ -831,6 +835,25 @@ class HomeScreen extends StatelessWidget {
           'No collections scheduled for today',
           textAlign: TextAlign.center,
           style: TextStyle(color: Color(0xFF8C95A6), fontSize: 14),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyBag() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: const Center(
+        child: Text(
+          '⚠️  No bags assigned for you!',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.black, fontSize: 14),
         ),
       ),
     );

@@ -179,11 +179,33 @@ void main() {
       expect(find.text('Waste Parameters'), findsOneWidget);
     });
 
+    testWidgets('When bag count is 0, Record button is disabled and shows No bags available',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: DirectDisposalScreen(remainingBags: 0),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('No bags available'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      final buttonFinder =
+          find.widgetWithText(ElevatedButton, 'No bags available');
+      expect(buttonFinder, findsOneWidget);
+      final elevatedButton = tester.widget<ElevatedButton>(buttonFinder);
+      expect(elevatedButton.onPressed, isNull);
+    });
+
     testWidgets('Tapping Record Disposal shows customer details and weight validations',
         (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: DirectDisposalScreen(),
+          home: DirectDisposalScreen(remainingBags: 5),
         ),
       );
       await tester.pumpAndSettle();

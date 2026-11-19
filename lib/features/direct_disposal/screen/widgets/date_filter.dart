@@ -36,10 +36,10 @@ class _PickupCalendarState extends State<PickupCalendar> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1E293B),
-              onPrimary: Colors.white,
+              primary: Colors.white,
+              onPrimary: Colors.grey,
               surface: Colors.white,
-              onSurface: Color(0xFF0F172A),
+              onSurface: Colors.white,
             ),
           ),
           child: child!,
@@ -67,8 +67,7 @@ class _PickupCalendarState extends State<PickupCalendar> {
       case 'Yesterday':
         final yesterday = today.subtract(const Duration(days: 1));
         setState(() {
-          _selectedDateRange =
-              DateTimeRange(start: yesterday, end: yesterday);
+          _selectedDateRange = DateTimeRange(start: yesterday, end: yesterday);
         });
         break;
       case 'Last 7 Days':

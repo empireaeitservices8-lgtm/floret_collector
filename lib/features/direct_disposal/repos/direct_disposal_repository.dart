@@ -125,7 +125,7 @@ class DirectDisposalRepository {
     String username = '';
 
     username = await _collectorLocalStorage.getUsername();
-    final collector = await _collectorLocalStorage.getCollector();
+    // final collector = await _collectorLocalStorage.getCollector();
     final collectorId = (await _collectorLocalStorage.getCollectorId()).trim();
 
     // if (collector != null) {

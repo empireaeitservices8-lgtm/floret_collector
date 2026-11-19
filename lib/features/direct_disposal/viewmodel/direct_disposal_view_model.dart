@@ -27,8 +27,8 @@ class DirectDisposalViewModel extends ViewModel {
   double _rate = 2.00;
   String _paymentMethod = 'CASH';
   String _paymentStatus = 'PAID';
-  String _gstRateOption = '5% GST (Standard)';
-
+  // String _gstRateOption = '5% GST (Standard)';
+  String _gstRateOption = '18% GST';
   // Bag Selection State
   int _remainingBags = 0;
   int _assignedBags = 0;
@@ -45,7 +45,7 @@ class DirectDisposalViewModel extends ViewModel {
   DirectDisposalViewModel({
     DirectDisposalRepository? repository,
     int? initialRemainingBags,
-  })  : _repository = repository ??
+  }) : _repository = repository ??
             (getIt.isRegistered<DirectDisposalRepository>()
                 ? getIt<DirectDisposalRepository>()
                 : DirectDisposalRepository()) {
@@ -109,18 +109,18 @@ class DirectDisposalViewModel extends ViewModel {
   final List<String> paymentMethodOptions = const ['CASH', 'ONLINE'];
   final List<String> paymentStatusOptions = const ['PAID', 'PENDING'];
   final List<String> gstRateOptions = const [
-    '5% GST (Standard)',
-    '12% GST',
+    // '5% GST (Standard)',
+    // '12% GST',
     '18% GST',
-    '0% (Exempt)',
+    // '0% (Exempt)',
   ];
 
   // Dynamic Financial Calculations
   double get subtotal => (_weight * _rate) + bagsCost;
 
   double get gstPercentage {
-    if (_gstRateOption.contains('5%')) return 5.0;
-    if (_gstRateOption.contains('12%')) return 12.0;
+    // if (_gstRateOption.contains('5%')) return 5.0;
+    // if (_gstRateOption.contains('12%')) return 12.0;
     if (_gstRateOption.contains('18%')) return 18.0;
     return 0.0;
   }
@@ -437,7 +437,7 @@ class DirectDisposalViewModel extends ViewModel {
     _rate = 2.00;
     _paymentMethod = 'CASH';
     _paymentStatus = 'PAID';
-    _gstRateOption = '5% GST (Standard)';
+    _gstRateOption = '18% GST';
     _bagQuantity = 0;
 
     _nameError = null;
