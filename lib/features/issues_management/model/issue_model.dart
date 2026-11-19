@@ -28,6 +28,82 @@ class IssueModel {
     return userName.trim().substring(0, 1).toUpperCase();
   }
 
+  String? get formattedResolvedDate {
+    if (resolvedAt == null || resolvedAt!.trim().isEmpty) return null;
+    try {
+      final dt = DateTime.tryParse(resolvedAt!.trim());
+      if (dt == null) return null;
+      final local = dt.toLocal();
+      final now = DateTime.now();
+
+      final isToday = local.year == now.year &&
+          local.month == now.month &&
+          local.day == now.day;
+
+      final yesterday = now.subtract(const Duration(days: 1));
+      final isYesterday = local.year == yesterday.year &&
+          local.month == yesterday.month &&
+          local.day == yesterday.day;
+
+      final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+      final amPm = local.hour >= 12 ? 'PM' : 'AM';
+      final minute = local.minute.toString().padLeft(2, '0');
+      final timeStr = '$hour:$minute $amPm';
+
+      if (isToday) {
+        return 'Today, $timeStr';
+      } else if (isYesterday) {
+        return 'Yesterday, $timeStr';
+      }
+
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      final month = months[local.month - 1];
+      return '${local.day} $month ${local.year}, $timeStr';
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? get formattedCreatedDate {
+    if (createdAt == null || createdAt!.trim().isEmpty) return null;
+    try {
+      final dt = DateTime.tryParse(createdAt!.trim());
+      if (dt == null) return null;
+      final local = dt.toLocal();
+      final now = DateTime.now();
+
+      final isToday = local.year == now.year &&
+          local.month == now.month &&
+          local.day == now.day;
+
+      final yesterday = now.subtract(const Duration(days: 1));
+      final isYesterday = local.year == yesterday.year &&
+          local.month == yesterday.month &&
+          local.day == yesterday.day;
+
+      if (isToday) {
+        final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+        final amPm = local.hour >= 12 ? 'PM' : 'AM';
+        final minute = local.minute.toString().padLeft(2, '0');
+        return 'Today, $hour:$minute $amPm';
+      } else if (isYesterday) {
+        return 'Yesterday';
+      }
+
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      final month = months[local.month - 1];
+      return '${local.day} $month ${local.year}';
+    } catch (_) {
+      return null;
+    }
+  }
+
   factory IssueModel.fromJson(Map<String, dynamic> json) {
     return IssueModel(
       id: json['id']?.toString() ?? '',

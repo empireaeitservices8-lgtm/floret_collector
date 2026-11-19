@@ -93,12 +93,8 @@ class _DirectDisposalScreenState extends State<DirectDisposalScreen> {
       create: (_) {
         final vm = getIt.isRegistered<DirectDisposalViewModel>()
             ? getIt<DirectDisposalViewModel>()
-            : DirectDisposalViewModel(
-                initialRemainingBags: widget.remainingBags,
-              );
-        if (widget.remainingBags != null) {
-          vm.setRemainingBags(widget.remainingBags!);
-        }
+            : DirectDisposalViewModel();
+
         return vm;
       },
       child: Scaffold(

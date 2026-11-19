@@ -307,17 +307,39 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
             selectedIdx = targetIdx;
           }
         } else {
-          // Default to the first uncompleted stop (giving priority to arrived stops ready to collect)
+          // Priority to arrived stops ready to collect
           final arrivedIdx = stops.indexWhere((s) =>
               !(s['isCompleted'] as bool) &&
               (s['status'] as String? ?? '').toLowerCase() == 'arrived');
           if (arrivedIdx != -1) {
             selectedIdx = arrivedIdx;
           } else {
-            final uncompletedIdx =
-                stops.indexWhere((s) => !(s['isCompleted'] as bool));
-            if (uncompletedIdx != -1) {
-              selectedIdx = uncompletedIdx;
+            // Find nearest uncompleted stop to collector's current location
+            final refPos = _currentLocation;
+            int nearestIdx = -1;
+            double minDistance = double.infinity;
+
+            for (int i = 0; i < stops.length; i++) {
+              if (!(stops[i]['isCompleted'] as bool)) {
+                final pos = stops[i]['position'] as LatLng?;
+                if (refPos != null && pos != null) {
+                  final dist = Geolocator.distanceBetween(
+                    refPos.latitude,
+                    refPos.longitude,
+                    pos.latitude,
+                    pos.longitude,
+                  );
+                  if (dist < minDistance) {
+                    minDistance = dist;
+                    nearestIdx = i;
+                  }
+                } else if (nearestIdx == -1) {
+                  nearestIdx = i;
+                }
+              }
+            }
+            if (nearestIdx != -1) {
+              selectedIdx = nearestIdx;
             }
           }
         }
@@ -984,23 +1006,69 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
     setState(() {
       _isNavigating = false;
       _hasArrived = false;
+
+      // Location of the pickup that was just completed
+      final completedPos =
+          _pickupStops[_currentStopIndex]['position'] as LatLng?;
+
       _pickupStops[_currentStopIndex]['isCompleted'] = true;
       _pickupStops[_currentStopIndex]['status'] = 'completed';
       _pickupStops[_currentStopIndex]['isNext'] = false;
 
-      // Find next uncompleted stop, giving priority to already arrived stops
+      // Reference position: prioritize the completed pickup's location,
+      // fallback to current live GPS position if unavailable.
+      final refPos = completedPos ?? _currentLocation;
+
       int nextIdx = -1;
-      for (int i = _currentStopIndex + 1; i < _pickupStops.length; i++) {
+      double minDistance = double.infinity;
+
+      // 1. If any uncompleted stop has already arrived, select the nearest arrived stop
+      for (int i = 0; i < _pickupStops.length; i++) {
+        if (i == _currentStopIndex) continue;
         if (!(_pickupStops[i]['isCompleted'] as bool)) {
-          nextIdx = i;
-          break;
+          final sStatus =
+              (_pickupStops[i]['status'] as String? ?? '').toLowerCase();
+          if (sStatus == 'arrived') {
+            final stopPos = _pickupStops[i]['position'] as LatLng?;
+            if (refPos != null && stopPos != null) {
+              final dist = Geolocator.distanceBetween(
+                refPos.latitude,
+                refPos.longitude,
+                stopPos.latitude,
+                stopPos.longitude,
+              );
+              if (dist < minDistance) {
+                minDistance = dist;
+                nextIdx = i;
+              }
+            } else if (nextIdx == -1) {
+              nextIdx = i;
+            }
+          }
         }
       }
+
+      // 2. Otherwise, find the nearest uncompleted stop geographically to the previous location
       if (nextIdx == -1) {
-        for (int i = 0; i < _currentStopIndex; i++) {
+        minDistance = double.infinity;
+        for (int i = 0; i < _pickupStops.length; i++) {
+          if (i == _currentStopIndex) continue;
           if (!(_pickupStops[i]['isCompleted'] as bool)) {
-            nextIdx = i;
-            break;
+            final stopPos = _pickupStops[i]['position'] as LatLng?;
+            if (refPos != null && stopPos != null) {
+              final dist = Geolocator.distanceBetween(
+                refPos.latitude,
+                refPos.longitude,
+                stopPos.latitude,
+                stopPos.longitude,
+              );
+              if (dist < minDistance) {
+                minDistance = dist;
+                nextIdx = i;
+              }
+            } else if (nextIdx == -1) {
+              nextIdx = i;
+            }
           }
         }
       }
@@ -1028,7 +1096,7 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
     _zoomToFitMarkers();
     _fetchRoadRoute();
 
-    _showSnack('Moved to next pickup: ${_currentStop['title']}');
+    _showSnack('Moved to next nearest pickup: ${_currentStop['title']}');
   }
 
   void _showSnack(String message, {bool isError = false}) {

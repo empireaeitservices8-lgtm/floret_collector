@@ -47,6 +47,7 @@ class LoginRepositoryImpl implements LoginRepository {
   @override
   Future<void> logout() async {
     await CollectionMetricsStorage().clearMetrics();
+    await authService.collectorLocalStorage.clearCollector();
     return tokenStorage.deleteToken();
   }
 }

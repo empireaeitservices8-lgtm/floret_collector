@@ -33,7 +33,8 @@ void main() {
       expect(log.isPaid, isFalse);
     });
 
-    test('DirectDisposalLogModel.fromJson parses API response format correctly', () {
+    test('DirectDisposalLogModel.fromJson parses API response format correctly',
+        () {
       final json = {
         "id": 36,
         "customer_name": "John Doe",
@@ -129,16 +130,14 @@ void main() {
       expect(vm.logs.first.customerName, 'Rahul Kumar');
     });
 
-    test('Bag quantity selection and calculation in DirectDisposalViewModel', () {
-      final vm = DirectDisposalViewModel(initialRemainingBags: 5);
+    test('Bag quantity selection and calculation in DirectDisposalViewModel',
+        () {
+      final vm = DirectDisposalViewModel();
 
-      expect(vm.remainingBags, 5);
       expect(vm.bagQuantity, 0);
-      expect(vm.canIncrementBag, isTrue);
 
       vm.incrementBagQuantity();
       expect(vm.bagQuantity, 1);
-      expect(vm.bagsCost, 7.0);
 
       vm.setWeight(10.0);
       vm.setRate(2.0);
@@ -158,7 +157,8 @@ void main() {
   });
 
   group('DirectDisposalScreen Widget Tests', () {
-    testWidgets('Renders Direct Disposal screen with New Record and Disposal Logs tabs',
+    testWidgets(
+        'Renders Direct Disposal screen with New Record and Disposal Logs tabs',
         (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -179,7 +179,8 @@ void main() {
       expect(find.text('Waste Parameters'), findsOneWidget);
     });
 
-    testWidgets('When bag count is 0, Record button is disabled and shows No bags available',
+    testWidgets(
+        'When bag count is 0, Record button is disabled and shows No bags available',
         (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -201,7 +202,8 @@ void main() {
       expect(elevatedButton.onPressed, isNull);
     });
 
-    testWidgets('Tapping Record Disposal shows customer details and weight validations',
+    testWidgets(
+        'Tapping Record Disposal shows customer details and weight validations',
         (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(

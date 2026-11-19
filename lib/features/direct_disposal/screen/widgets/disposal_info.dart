@@ -63,30 +63,30 @@ Widget buildWasteParametersCard({
         Row(
           children: [
             // Disposal Type Dropdown
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Disposal Type',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  buildDisposalDropdown(
-                    value: vm.disposalType,
-                    items: vm.disposalTypeOptions,
-                    onChanged: (val) {
-                      if (val != null) vm.setDisposalType(val);
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
+            // Expanded(
+            //   child: Column(
+            //     crossAxisAlignment: CrossAxisAlignment.start,
+            //     children: [
+            //       const Text(
+            //         'Disposal Type',
+            //         style: TextStyle(
+            //           fontSize: 13,
+            //           fontWeight: FontWeight.w600,
+            //           color: Color(0xFF0F172A),
+            //         ),
+            //       ),
+            //       const SizedBox(height: 6),
+            //       buildDisposalDropdown(
+            //         value: vm.disposalType,
+            //         items: vm.disposalTypeOptions,
+            //         onChanged: (val) {
+            //           if (val != null) vm.setDisposalType(val);
+            //         },
+            //       ),
+            //     ],
+            //   ),
+            // ),
+            // const SizedBox(width: 12),
 
             // Waste Type Dropdown
             Expanded(

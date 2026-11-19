@@ -45,7 +45,7 @@ class _MenuScreenState extends State<MenuScreen> {
         _lastTabTapCount = mainVm.tabTapCount;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            _viewModel.loadProfile();
+            _viewModel.loadProfile(isSilent: true);
           }
         });
       } else {
@@ -70,7 +70,7 @@ class _MenuScreenState extends State<MenuScreen> {
         body: SafeArea(
           child: Consumer<MenuViewModel>(
             builder: (context, vm, _) {
-              if (vm.isLoading) {
+              if (vm.isLoading && vm.profile.name.isEmpty) {
                 return _buildMenuShimmer();
               }
 

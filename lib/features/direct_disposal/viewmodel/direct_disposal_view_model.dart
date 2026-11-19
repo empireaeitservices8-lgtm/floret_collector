@@ -30,10 +30,7 @@ class DirectDisposalViewModel extends ViewModel {
   // String _gstRateOption = '5% GST (Standard)';
   String _gstRateOption = '18% GST';
   // Bag Selection State
-  int _remainingBags = 0;
-  int _assignedBags = 0;
-  int _bagQuantity = 0;
-  final double _bagPrice = 7.00;
+  int _bagQuantity = 1;
 
   // Validation Errors
   String? _nameError;
@@ -44,16 +41,11 @@ class DirectDisposalViewModel extends ViewModel {
 
   DirectDisposalViewModel({
     DirectDisposalRepository? repository,
-    int? initialRemainingBags,
   }) : _repository = repository ??
             (getIt.isRegistered<DirectDisposalRepository>()
                 ? getIt<DirectDisposalRepository>()
                 : DirectDisposalRepository()) {
-    if (initialRemainingBags != null && initialRemainingBags >= 0) {
-      _remainingBags = initialRemainingBags;
-    }
     loadLogs();
-    loadBagAssignment();
   }
 
   DirectDisposalTab get selectedTab => _selectedTab;
@@ -75,14 +67,9 @@ class DirectDisposalViewModel extends ViewModel {
   String get gstRateOption => _gstRateOption;
 
   // Bag Getters
-  int get remainingBags => _remainingBags;
-  int get assignedBags => _assignedBags;
+
   int get bagQuantity => _bagQuantity;
-  double get bagPrice => _bagPrice;
-  bool get canIncrementBag =>
-      _remainingBags > 0 ? _bagQuantity < _remainingBags : true;
-  String get bagPriceLabel => 'Price: ₹${_bagPrice.toInt()} per bag';
-  double get bagsCost => _bagQuantity * _bagPrice;
+
   double get disposalFee => _weight * _rate;
 
   String? get nameError => _nameError;
@@ -92,11 +79,11 @@ class DirectDisposalViewModel extends ViewModel {
   bool get hasAttemptedSubmit => _hasAttemptedSubmit;
 
   // Options
-  final List<String> disposalTypeOptions = const [
-    'WALK IN',
-    'COLLECTION',
-    'TRANSFER'
-  ];
+  // final List<String> disposalTypeOptions = const [
+  //   'WALK IN',
+  //   'COLLECTION',
+  //   'TRANSFER'
+  // ];
   final List<String> wasteTypeOptions = const [
     'MIXED WASTE',
     'BIO WASTE',
@@ -116,7 +103,7 @@ class DirectDisposalViewModel extends ViewModel {
   ];
 
   // Dynamic Financial Calculations
-  double get subtotal => (_weight * _rate) + bagsCost;
+  double get subtotal => (_weight * _rate);
 
   double get gstPercentage {
     // if (_gstRateOption.contains('5%')) return 5.0;
@@ -287,15 +274,6 @@ class DirectDisposalViewModel extends ViewModel {
   }
 
   // Bag Mutators
-  void setRemainingBags(int val) {
-    if (_remainingBags != val) {
-      _remainingBags = val;
-      if (_remainingBags > 0 && _bagQuantity > _remainingBags) {
-        _bagQuantity = _remainingBags;
-      }
-      notifyListeners();
-    }
-  }
 
   void setBagQuantity(int val) {
     _bagQuantity = val;
@@ -303,41 +281,14 @@ class DirectDisposalViewModel extends ViewModel {
   }
 
   void incrementBagQuantity() {
-    if (canIncrementBag) {
-      _bagQuantity++;
-      notifyListeners();
-    }
+    _bagQuantity++;
+    notifyListeners();
   }
 
   void decrementBagQuantity() {
-    if (_bagQuantity > 0) {
+    if (_bagQuantity > 1) {
       _bagQuantity--;
       notifyListeners();
-    }
-  }
-
-  Future<void> loadBagAssignment() async {
-    try {
-      final bagData = await _repository.fetchBagAssignment();
-      if (bagData != null) {
-        final rem = (bagData['remaining_bags'] as num?)?.toInt() ??
-            int.tryParse(bagData['remaining_bags']?.toString() ?? '') ??
-            (bagData['remaining'] as num?)?.toInt();
-        final assigned = (bagData['assigned_bags'] as num?)?.toInt() ??
-            int.tryParse(bagData['assigned_bags']?.toString() ?? '');
-        if (rem != null && rem >= 0) {
-          _remainingBags = rem;
-        }
-        if (assigned != null && assigned >= 0) {
-          _assignedBags = assigned;
-        }
-        if (_remainingBags > 0 && _bagQuantity > _remainingBags) {
-          _bagQuantity = _remainingBags;
-        }
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Error loading bag assignment in direct disposal: $e');
     }
   }
 
@@ -409,13 +360,7 @@ class DirectDisposalViewModel extends ViewModel {
       paymentStatus: _paymentStatus,
       bagCount: _bagQuantity,
     );
-
-    if (_bagQuantity > 0 && _remainingBags > 0) {
-      _remainingBags = (_remainingBags - _bagQuantity).clamp(0, 999999);
-    }
-
     await loadLogs();
-
     // Reset Form
     resetForm();
 
@@ -438,7 +383,7 @@ class DirectDisposalViewModel extends ViewModel {
     _paymentMethod = 'CASH';
     _paymentStatus = 'PAID';
     _gstRateOption = '18% GST';
-    _bagQuantity = 0;
+    _bagQuantity = 1;
 
     _nameError = null;
     _phoneError = null;

@@ -146,52 +146,28 @@ Widget buildPaymentInfoCard({
           ),
           child: Column(
             children: [
-              if (vm.bagQuantity > 0) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Waste Bags (${vm.bagQuantity} × ₹${vm.bagPrice.toInt()}):',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Disposal Fee (${vm.weight.toStringAsFixed(1)} kg × ₹${vm.rate.toStringAsFixed(2)}):',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w500,
                     ),
-                    Text(
-                      '+ ₹${vm.bagsCost.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF0F172A),
-                        fontWeight: FontWeight.w700,
-                      ),
+                  ),
+                  Text(
+                    '₹${vm.disposalFee.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF0F172A),
+                      fontWeight: FontWeight.w700,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Disposal Fee (${vm.weight.toStringAsFixed(1)} kg × ₹${vm.rate.toStringAsFixed(2)}):',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      '₹${vm.disposalFee.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF0F172A),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -263,15 +239,14 @@ Widget buildPaymentInfoCard({
           ),
         ),
 
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
 
         // Record Disposal Submit Button
         SizedBox(
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            onPressed:
-                (isSubmitting || vm.remainingBags <= 0) ? null : onSubmit,
+            onPressed: (isSubmitting) ? null : onSubmit,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E293B),
               disabledBackgroundColor: const Color(0xFF94A3B8),
@@ -292,9 +267,7 @@ Widget buildPaymentInfoCard({
                     ),
                   )
                 : Text(
-                    vm.remainingBags <= 0
-                        ? 'No bags available'
-                        : 'Record Disposal',
+                    'Record Disposal',
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,

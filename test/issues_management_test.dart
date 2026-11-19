@@ -25,7 +25,40 @@ void main() {
       expect(issue.userInitial, 'N');
       expect(issue.phoneNumber, '5674564897');
       expect(issue.isResolved, isFalse);
+      test('IssueModel formattedResolvedDate and formattedCreatedDate format correctly', () {
+      final now = DateTime.now();
+      final todayStr = now.toIso8601String();
+      final issueToday = IssueModel(
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc',
+        userName: 'User',
+        isResolved: true,
+        resolvedAt: todayStr,
+        createdAt: '2026-09-10T08:52:08.400Z',
+      );
+
+      expect(issueToday.formattedResolvedDate, startsWith('Today,'));
+      expect(issueToday.formattedCreatedDate, '10 Sep 2026');
     });
+
+    test('IssuesViewModel sorts resolved issues newest first', () async {
+      final vm = IssuesViewModel();
+      await vm.loadData();
+
+      final resolved = vm.resolvedIssues;
+      expect(resolved.isNotEmpty, isTrue);
+
+      // Verify that dates or IDs are in descending order
+      for (int i = 0; i < resolved.length - 1; i++) {
+        final dateA = DateTime.tryParse(resolved[i].resolvedAt ?? resolved[i].createdAt ?? '');
+        final dateB = DateTime.tryParse(resolved[i + 1].resolvedAt ?? resolved[i + 1].createdAt ?? '');
+        if (dateA != null && dateB != null) {
+          expect(dateA.isAfter(dateB) || dateA.isAtSameMomentAs(dateB), isTrue);
+        }
+      }
+    });
+  });
 
     test('IssueModel.fromJson parses API response format correctly', () {
       final jsonResolved = {
@@ -75,7 +108,40 @@ void main() {
       expect(issuePending.userName, 'noel');
       expect(issuePending.phoneNumber, '5674564897');
       expect(issuePending.isResolved, isFalse);
+      test('IssueModel formattedResolvedDate and formattedCreatedDate format correctly', () {
+      final now = DateTime.now();
+      final todayStr = now.toIso8601String();
+      final issueToday = IssueModel(
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc',
+        userName: 'User',
+        isResolved: true,
+        resolvedAt: todayStr,
+        createdAt: '2026-09-10T08:52:08.400Z',
+      );
+
+      expect(issueToday.formattedResolvedDate, startsWith('Today,'));
+      expect(issueToday.formattedCreatedDate, '10 Sep 2026');
     });
+
+    test('IssuesViewModel sorts resolved issues newest first', () async {
+      final vm = IssuesViewModel();
+      await vm.loadData();
+
+      final resolved = vm.resolvedIssues;
+      expect(resolved.isNotEmpty, isTrue);
+
+      // Verify that dates or IDs are in descending order
+      for (int i = 0; i < resolved.length - 1; i++) {
+        final dateA = DateTime.tryParse(resolved[i].resolvedAt ?? resolved[i].createdAt ?? '');
+        final dateB = DateTime.tryParse(resolved[i + 1].resolvedAt ?? resolved[i + 1].createdAt ?? '');
+        if (dateA != null && dateB != null) {
+          expect(dateA.isAfter(dateB) || dateA.isAtSameMomentAs(dateB), isTrue);
+        }
+      }
+    });
+  });
 
     test('IssuesViewModel tab switching and counts', () async {
       final vm = IssuesViewModel();
@@ -93,7 +159,40 @@ void main() {
       expect(vm.selectedTab, IssueTab.resolved);
       expect(vm.currentTabIssues.length, 4);
       expect(vm.currentTabIssues.every((i) => i.isResolved), isTrue);
+      test('IssueModel formattedResolvedDate and formattedCreatedDate format correctly', () {
+      final now = DateTime.now();
+      final todayStr = now.toIso8601String();
+      final issueToday = IssueModel(
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc',
+        userName: 'User',
+        isResolved: true,
+        resolvedAt: todayStr,
+        createdAt: '2026-09-10T08:52:08.400Z',
+      );
+
+      expect(issueToday.formattedResolvedDate, startsWith('Today,'));
+      expect(issueToday.formattedCreatedDate, '10 Sep 2026');
     });
+
+    test('IssuesViewModel sorts resolved issues newest first', () async {
+      final vm = IssuesViewModel();
+      await vm.loadData();
+
+      final resolved = vm.resolvedIssues;
+      expect(resolved.isNotEmpty, isTrue);
+
+      // Verify that dates or IDs are in descending order
+      for (int i = 0; i < resolved.length - 1; i++) {
+        final dateA = DateTime.tryParse(resolved[i].resolvedAt ?? resolved[i].createdAt ?? '');
+        final dateB = DateTime.tryParse(resolved[i + 1].resolvedAt ?? resolved[i + 1].createdAt ?? '');
+        if (dateA != null && dateB != null) {
+          expect(dateA.isAfter(dateB) || dateA.isAtSameMomentAs(dateB), isTrue);
+        }
+      }
+    });
+  });
 
     test('IssuesViewModel refresh 3-second progress state', () async {
       final vm = IssuesViewModel();
@@ -105,6 +204,72 @@ void main() {
 
       await refreshFuture;
       expect(vm.isRefreshing, isFalse);
+      test('IssueModel formattedResolvedDate and formattedCreatedDate format correctly', () {
+      final now = DateTime.now();
+      final todayStr = now.toIso8601String();
+      final issueToday = IssueModel(
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc',
+        userName: 'User',
+        isResolved: true,
+        resolvedAt: todayStr,
+        createdAt: '2026-09-10T08:52:08.400Z',
+      );
+
+      expect(issueToday.formattedResolvedDate, startsWith('Today,'));
+      expect(issueToday.formattedCreatedDate, '10 Sep 2026');
+    });
+
+    test('IssuesViewModel sorts resolved issues newest first', () async {
+      final vm = IssuesViewModel();
+      await vm.loadData();
+
+      final resolved = vm.resolvedIssues;
+      expect(resolved.isNotEmpty, isTrue);
+
+      // Verify that dates or IDs are in descending order
+      for (int i = 0; i < resolved.length - 1; i++) {
+        final dateA = DateTime.tryParse(resolved[i].resolvedAt ?? resolved[i].createdAt ?? '');
+        final dateB = DateTime.tryParse(resolved[i + 1].resolvedAt ?? resolved[i + 1].createdAt ?? '');
+        if (dateA != null && dateB != null) {
+          expect(dateA.isAfter(dateB) || dateA.isAtSameMomentAs(dateB), isTrue);
+        }
+      }
+    });
+  });
+    test('IssueModel formattedResolvedDate and formattedCreatedDate format correctly', () {
+      final now = DateTime.now();
+      final todayStr = now.toIso8601String();
+      final issueToday = IssueModel(
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc',
+        userName: 'User',
+        isResolved: true,
+        resolvedAt: todayStr,
+        createdAt: '2026-09-10T08:52:08.400Z',
+      );
+
+      expect(issueToday.formattedResolvedDate, startsWith('Today,'));
+      expect(issueToday.formattedCreatedDate, '10 Sep 2026');
+    });
+
+    test('IssuesViewModel sorts resolved issues newest first', () async {
+      final vm = IssuesViewModel();
+      await vm.loadData();
+
+      final resolved = vm.resolvedIssues;
+      expect(resolved.isNotEmpty, isTrue);
+
+      // Verify that dates or IDs are in descending order
+      for (int i = 0; i < resolved.length - 1; i++) {
+        final dateA = DateTime.tryParse(resolved[i].resolvedAt ?? resolved[i].createdAt ?? '');
+        final dateB = DateTime.tryParse(resolved[i + 1].resolvedAt ?? resolved[i + 1].createdAt ?? '');
+        if (dateA != null && dateB != null) {
+          expect(dateA.isAfter(dateB) || dateA.isAtSameMomentAs(dateB), isTrue);
+        }
+      }
     });
   });
 
@@ -145,7 +310,40 @@ void main() {
       await tester.scrollUntilVisible(find.text('subham'), 200);
       expect(find.text('subham'), findsOneWidget);
       expect(find.text('+918921305443'), findsOneWidget);
+      test('IssueModel formattedResolvedDate and formattedCreatedDate format correctly', () {
+      final now = DateTime.now();
+      final todayStr = now.toIso8601String();
+      final issueToday = IssueModel(
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc',
+        userName: 'User',
+        isResolved: true,
+        resolvedAt: todayStr,
+        createdAt: '2026-09-10T08:52:08.400Z',
+      );
+
+      expect(issueToday.formattedResolvedDate, startsWith('Today,'));
+      expect(issueToday.formattedCreatedDate, '10 Sep 2026');
     });
+
+    test('IssuesViewModel sorts resolved issues newest first', () async {
+      final vm = IssuesViewModel();
+      await vm.loadData();
+
+      final resolved = vm.resolvedIssues;
+      expect(resolved.isNotEmpty, isTrue);
+
+      // Verify that dates or IDs are in descending order
+      for (int i = 0; i < resolved.length - 1; i++) {
+        final dateA = DateTime.tryParse(resolved[i].resolvedAt ?? resolved[i].createdAt ?? '');
+        final dateB = DateTime.tryParse(resolved[i + 1].resolvedAt ?? resolved[i + 1].createdAt ?? '');
+        if (dateA != null && dateB != null) {
+          expect(dateA.isAfter(dateB) || dateA.isAtSameMomentAs(dateB), isTrue);
+        }
+      }
+    });
+  });
 
     testWidgets('Tapping Resolved tab displays resolved issues list',
         (WidgetTester tester) async {
@@ -175,7 +373,40 @@ void main() {
       );
       expect(find.text('Jos'), findsWidgets);
       expect(find.text('+919876543210'), findsWidgets);
+      test('IssueModel formattedResolvedDate and formattedCreatedDate format correctly', () {
+      final now = DateTime.now();
+      final todayStr = now.toIso8601String();
+      final issueToday = IssueModel(
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc',
+        userName: 'User',
+        isResolved: true,
+        resolvedAt: todayStr,
+        createdAt: '2026-09-10T08:52:08.400Z',
+      );
+
+      expect(issueToday.formattedResolvedDate, startsWith('Today,'));
+      expect(issueToday.formattedCreatedDate, '10 Sep 2026');
     });
+
+    test('IssuesViewModel sorts resolved issues newest first', () async {
+      final vm = IssuesViewModel();
+      await vm.loadData();
+
+      final resolved = vm.resolvedIssues;
+      expect(resolved.isNotEmpty, isTrue);
+
+      // Verify that dates or IDs are in descending order
+      for (int i = 0; i < resolved.length - 1; i++) {
+        final dateA = DateTime.tryParse(resolved[i].resolvedAt ?? resolved[i].createdAt ?? '');
+        final dateB = DateTime.tryParse(resolved[i + 1].resolvedAt ?? resolved[i + 1].createdAt ?? '');
+        if (dateA != null && dateB != null) {
+          expect(dateA.isAfter(dateB) || dateA.isAtSameMomentAs(dateB), isTrue);
+        }
+      }
+    });
+  });
 
     testWidgets(
         'Tapping refresh button shows CircularProgressIndicator for 3 seconds',
@@ -214,7 +445,40 @@ void main() {
       // Progress indicator disappears and list is back
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.text('noel'), findsOneWidget);
+      test('IssueModel formattedResolvedDate and formattedCreatedDate format correctly', () {
+      final now = DateTime.now();
+      final todayStr = now.toIso8601String();
+      final issueToday = IssueModel(
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc',
+        userName: 'User',
+        isResolved: true,
+        resolvedAt: todayStr,
+        createdAt: '2026-09-10T08:52:08.400Z',
+      );
+
+      expect(issueToday.formattedResolvedDate, startsWith('Today,'));
+      expect(issueToday.formattedCreatedDate, '10 Sep 2026');
     });
+
+    test('IssuesViewModel sorts resolved issues newest first', () async {
+      final vm = IssuesViewModel();
+      await vm.loadData();
+
+      final resolved = vm.resolvedIssues;
+      expect(resolved.isNotEmpty, isTrue);
+
+      // Verify that dates or IDs are in descending order
+      for (int i = 0; i < resolved.length - 1; i++) {
+        final dateA = DateTime.tryParse(resolved[i].resolvedAt ?? resolved[i].createdAt ?? '');
+        final dateB = DateTime.tryParse(resolved[i + 1].resolvedAt ?? resolved[i + 1].createdAt ?? '');
+        if (dateA != null && dateB != null) {
+          expect(dateA.isAfter(dateB) || dateA.isAtSameMomentAs(dateB), isTrue);
+        }
+      }
+    });
+  });
 
     testWidgets(
         'Renders issue card with long user name and phone number without overflow on narrow device',
@@ -224,7 +488,40 @@ void main() {
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
-      });
+        test('IssueModel formattedResolvedDate and formattedCreatedDate format correctly', () {
+      final now = DateTime.now();
+      final todayStr = now.toIso8601String();
+      final issueToday = IssueModel(
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc',
+        userName: 'User',
+        isResolved: true,
+        resolvedAt: todayStr,
+        createdAt: '2026-09-10T08:52:08.400Z',
+      );
+
+      expect(issueToday.formattedResolvedDate, startsWith('Today,'));
+      expect(issueToday.formattedCreatedDate, '10 Sep 2026');
+    });
+
+    test('IssuesViewModel sorts resolved issues newest first', () async {
+      final vm = IssuesViewModel();
+      await vm.loadData();
+
+      final resolved = vm.resolvedIssues;
+      expect(resolved.isNotEmpty, isTrue);
+
+      // Verify that dates or IDs are in descending order
+      for (int i = 0; i < resolved.length - 1; i++) {
+        final dateA = DateTime.tryParse(resolved[i].resolvedAt ?? resolved[i].createdAt ?? '');
+        final dateB = DateTime.tryParse(resolved[i + 1].resolvedAt ?? resolved[i + 1].createdAt ?? '');
+        if (dateA != null && dateB != null) {
+          expect(dateA.isAfter(dateB) || dateA.isAtSameMomentAs(dateB), isTrue);
+        }
+      }
+    });
+  });
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -236,6 +533,72 @@ void main() {
 
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+      test('IssueModel formattedResolvedDate and formattedCreatedDate format correctly', () {
+      final now = DateTime.now();
+      final todayStr = now.toIso8601String();
+      final issueToday = IssueModel(
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc',
+        userName: 'User',
+        isResolved: true,
+        resolvedAt: todayStr,
+        createdAt: '2026-09-10T08:52:08.400Z',
+      );
+
+      expect(issueToday.formattedResolvedDate, startsWith('Today,'));
+      expect(issueToday.formattedCreatedDate, '10 Sep 2026');
+    });
+
+    test('IssuesViewModel sorts resolved issues newest first', () async {
+      final vm = IssuesViewModel();
+      await vm.loadData();
+
+      final resolved = vm.resolvedIssues;
+      expect(resolved.isNotEmpty, isTrue);
+
+      // Verify that dates or IDs are in descending order
+      for (int i = 0; i < resolved.length - 1; i++) {
+        final dateA = DateTime.tryParse(resolved[i].resolvedAt ?? resolved[i].createdAt ?? '');
+        final dateB = DateTime.tryParse(resolved[i + 1].resolvedAt ?? resolved[i + 1].createdAt ?? '');
+        if (dateA != null && dateB != null) {
+          expect(dateA.isAfter(dateB) || dateA.isAtSameMomentAs(dateB), isTrue);
+        }
+      }
+    });
+  });
+    test('IssueModel formattedResolvedDate and formattedCreatedDate format correctly', () {
+      final now = DateTime.now();
+      final todayStr = now.toIso8601String();
+      final issueToday = IssueModel(
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc',
+        userName: 'User',
+        isResolved: true,
+        resolvedAt: todayStr,
+        createdAt: '2026-09-10T08:52:08.400Z',
+      );
+
+      expect(issueToday.formattedResolvedDate, startsWith('Today,'));
+      expect(issueToday.formattedCreatedDate, '10 Sep 2026');
+    });
+
+    test('IssuesViewModel sorts resolved issues newest first', () async {
+      final vm = IssuesViewModel();
+      await vm.loadData();
+
+      final resolved = vm.resolvedIssues;
+      expect(resolved.isNotEmpty, isTrue);
+
+      // Verify that dates or IDs are in descending order
+      for (int i = 0; i < resolved.length - 1; i++) {
+        final dateA = DateTime.tryParse(resolved[i].resolvedAt ?? resolved[i].createdAt ?? '');
+        final dateB = DateTime.tryParse(resolved[i + 1].resolvedAt ?? resolved[i + 1].createdAt ?? '');
+        if (dateA != null && dateB != null) {
+          expect(dateA.isAfter(dateB) || dateA.isAtSameMomentAs(dateB), isTrue);
+        }
+      }
     });
   });
 }

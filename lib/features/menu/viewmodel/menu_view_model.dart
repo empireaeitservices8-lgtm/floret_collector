@@ -7,22 +7,43 @@ import '../../login/screen/login_screen.dart';
 class MenuViewModel extends ViewModel {
   final MenuRepository _repository;
   UserProfileModel _profile = const UserProfileModel();
+  bool _isInitialLoaded = false;
 
   MenuViewModel({MenuRepository? repository})
       : _repository = repository ?? MenuRepository() {
-    loadProfile();
+    init();
   }
 
   UserProfileModel get profile => _profile;
+  bool get isInitialLoaded => _isInitialLoaded;
 
-  Future<void> loadProfile({bool isPullToRefresh = false}) async {
-    if (!isPullToRefresh) {
+  Future<void> init() async {
+    // 1. Instantly load locally cached profile so UI renders with zero delay!
+    final cached = await _repository.getCachedUserProfile();
+    if (cached != null) {
+      _profile = cached;
+      _isInitialLoaded = true;
+      isLoading = false;
+      notifyListeners();
+    } else {
+      isLoading = true;
+      notifyListeners();
+    }
+
+    // 2. Refresh from network (silent if cached data was already presented)
+    await loadProfile(isSilent: cached != null);
+  }
+
+  Future<void> loadProfile({bool isPullToRefresh = false, bool isSilent = false}) async {
+    if (!isPullToRefresh && !isSilent && !_isInitialLoaded && _profile.name.isEmpty) {
       isLoading = true;
       notifyListeners();
     }
 
     try {
-      _profile = await _repository.fetchUserProfile();
+      final updatedProfile = await _repository.fetchUserProfile();
+      _profile = updatedProfile;
+      _isInitialLoaded = true;
     } catch (e) {
       debugPrint('Error loading user profile: $e');
     } finally {
@@ -47,6 +68,7 @@ class MenuViewModel extends ViewModel {
         aadhaarStatus: aPhoto.isNotEmpty ? 'Verified On File' : _profile.aadhaarStatus,
         name: (cName != null && cName.isNotEmpty) ? cName : _profile.name,
       );
+      await _repository.saveUserProfileLocally(_profile);
       notifyListeners();
       return res;
     } catch (_) {
@@ -75,6 +97,7 @@ class MenuViewModel extends ViewModel {
         aadhaarPhoto: newPhoto,
         aadhaarStatus: (newPhoto != null && newPhoto.isNotEmpty) ? 'Verified On File' : _profile.aadhaarStatus,
       );
+      await _repository.saveUserProfileLocally(_profile);
       notifyListeners();
       return res;
     } catch (_) {

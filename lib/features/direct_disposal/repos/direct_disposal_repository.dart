@@ -72,39 +72,40 @@ class DirectDisposalRepository {
     return List.from(_logs);
   }
 
-  Future<Map<String, dynamic>?> fetchBagAssignment([String? collectorId]) async {
-    try {
-      String effectiveCollectorId = collectorId ?? '';
-      if (effectiveCollectorId.isEmpty) {
-        effectiveCollectorId = await _collectorLocalStorage.getCollectorId();
-      }
-      if (effectiveCollectorId.isEmpty) {
-        final collector = await _collectorLocalStorage.getCollector();
-        effectiveCollectorId = collector?['id']?.toString() ?? '';
-      }
-      if (effectiveCollectorId.isEmpty) return null;
+  // Future<Map<String, dynamic>?> fetchBagAssignment(
+  //     [String? collectorId]) async {
+  //   try {
+  //     String effectiveCollectorId = collectorId ?? '';
+  //     if (effectiveCollectorId.isEmpty) {
+  //       effectiveCollectorId = await _collectorLocalStorage.getCollectorId();
+  //     }
+  //     if (effectiveCollectorId.isEmpty) {
+  //       final collector = await _collectorLocalStorage.getCollector();
+  //       effectiveCollectorId = collector?['id']?.toString() ?? '';
+  //     }
+  //     if (effectiveCollectorId.isEmpty) return null;
 
-      final response = await _apiClient.get(
-        APIEndPoints.bagAssignment,
-        queryParameters: {'collector_id': effectiveCollectorId},
-      );
+  //     final response = await _apiClient.get(
+  //       APIEndPoints.bagAssignment,
+  //       queryParameters: {'collector_id': effectiveCollectorId},
+  //     );
 
-      if (response.data is Map<String, dynamic>) {
-        return response.data as Map<String, dynamic>;
-      } else if (response.data is Map) {
-        return Map<String, dynamic>.from(response.data as Map);
-      } else if (response.data is List && (response.data as List).isNotEmpty) {
-        final first = (response.data as List).first;
-        if (first is Map) {
-          return Map<String, dynamic>.from(first);
-        }
-      }
-      return null;
-    } catch (e) {
-      debugPrint('DirectDisposalRepository fetchBagAssignment error: $e');
-      return null;
-    }
-  }
+  //     if (response.data is Map<String, dynamic>) {
+  //       return response.data as Map<String, dynamic>;
+  //     } else if (response.data is Map) {
+  //       return Map<String, dynamic>.from(response.data as Map);
+  //     } else if (response.data is List && (response.data as List).isNotEmpty) {
+  //       final first = (response.data as List).first;
+  //       if (first is Map) {
+  //         return Map<String, dynamic>.from(first);
+  //       }
+  //     }
+  //     return null;
+  //   } catch (e) {
+  //     debugPrint('DirectDisposalRepository fetchBagAssignment error: $e');
+  //     return null;
+  //   }
+  // }
 
   Future<DirectDisposalLogModel> recordDisposal({
     required String customerName,
@@ -118,7 +119,7 @@ class DirectDisposalRepository {
     // int? localBody,
     // int? ward,
     required String paymentStatus,
-    int bagCount = 0,
+    int bagCount = 1,
   }) async {
     // int? resolvedLocalBody = localBody;
     // int? resolvedWard = ward;
@@ -139,11 +140,11 @@ class DirectDisposalRepository {
     //   throw Exception('Please select a local body and ward.');
     // }
 
-    final requestBody = <String, dynamic>{
+    final requestBody = {
       'customer_name': customerName.trim(),
       'customer_phone': customerPhone.trim(),
       'customer_address': customerAddress.trim(),
-      'disposal_type': disposalType,
+      // 'disposal_type': disposalType,
       'waste_type': wasteType,
       'waste_description': wasteDescription ?? 'Mixed waste',
       'weight': weight,
@@ -152,28 +153,34 @@ class DirectDisposalRepository {
       // 'ward': resolvedWard,
       'payment_status': paymentStatus.trim().toLowerCase(),
       'bag_count': bagCount,
-      'bags_count': bagCount,
-      'bags_used': bagCount,
       if (collectorId.isNotEmpty) 'collector_id': collectorId,
       if (username.isNotEmpty) 'recorded_by': username,
     };
-
+    debugPrint('Direct disposal request body: $requestBody');
     final response = await _apiClient.post(
       APIEndPoints.directDisposal,
       data: requestBody,
     );
 
     final data = response.data;
+    debugPrint('Direct disposal response: $data');
 
-    if (data is! Map || data['disposal'] is! Map) {
+    Map<String, dynamic>? disposalData;
+    if (data is Map) {
+      if (data['disposal'] is Map) {
+        disposalData = Map<String, dynamic>.from(data['disposal'] as Map);
+      } else if (data['id'] != null ||
+          data['customer_name'] != null ||
+          data['waste_type'] != null) {
+        disposalData = Map<String, dynamic>.from(data);
+      }
+    }
+
+    if (disposalData == null) {
       throw const FormatException(
         'Invalid response: disposal details are missing.',
       );
     }
-
-    final disposalData = Map<String, dynamic>.from(
-      data['disposal'] as Map,
-    );
 
     if (disposalData['recorded_by'] == null && username.isNotEmpty) {
       disposalData['recorded_by'] = username;

@@ -24,11 +24,39 @@ class IssuesViewModel extends ViewModel {
   IssueTab get selectedTab => _selectedTab;
   bool get isRefreshing => _isRefreshing;
 
-  List<IssueModel> get openIssues =>
-      _allIssues.where((i) => !i.isResolved).toList();
+  List<IssueModel> get openIssues {
+    final list = _allIssues.where((i) => !i.isResolved).toList();
+    list.sort((a, b) {
+      final dateA = DateTime.tryParse(a.createdAt ?? '');
+      final dateB = DateTime.tryParse(b.createdAt ?? '');
+      if (dateA != null && dateB != null) {
+        return dateB.compareTo(dateA); // Newest first
+      } else if (dateB != null) {
+        return 1;
+      } else if (dateA != null) {
+        return -1;
+      }
+      return 0;
+    });
+    return list;
+  }
 
-  List<IssueModel> get resolvedIssues =>
-      _allIssues.where((i) => i.isResolved).toList();
+  List<IssueModel> get resolvedIssues {
+    final list = _allIssues.where((i) => i.isResolved).toList();
+    list.sort((a, b) {
+      final dateA = DateTime.tryParse(a.resolvedAt ?? a.createdAt ?? '');
+      final dateB = DateTime.tryParse(b.resolvedAt ?? b.createdAt ?? '');
+      if (dateA != null && dateB != null) {
+        return dateB.compareTo(dateA); // Newest first
+      } else if (dateB != null) {
+        return 1;
+      } else if (dateA != null) {
+        return -1;
+      }
+      return 0;
+    });
+    return list;
+  }
 
   List<IssueModel> get currentTabIssues =>
       _selectedTab == IssueTab.issues ? openIssues : resolvedIssues;

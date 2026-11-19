@@ -52,4 +52,36 @@ class UserProfileModel {
       aadhaarPhoto: aadhaarPhoto ?? this.aadhaarPhoto,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'collector_id': collectorId,
+      'name': name,
+      'phone': phone,
+      'vehicle_name': vehicleName,
+      'vehicle_status': vehicleStatus,
+      'reg_no': regNo,
+      'ward': ward,
+      'local_body': localBody,
+      'district': district,
+      'aadhaar_status': aadhaarStatus,
+      'aadhaar_photo': aadhaarPhoto,
+    };
+  }
+
+  factory UserProfileModel.fromJson(Map<String, dynamic> json) {
+    return UserProfileModel(
+      collectorId: json['collector_id']?.toString() ?? '68',
+      name: json['name']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      vehicleName: json['vehicle_name']?.toString() ?? '',
+      vehicleStatus: json['vehicle_status']?.toString() ?? 'Assigned',
+      regNo: json['reg_no']?.toString() ?? json['vehicle_number']?.toString() ?? '',
+      ward: json['ward']?.toString() ?? '',
+      localBody: json['local_body']?.toString() ?? '',
+      district: json['district']?.toString() ?? '',
+      aadhaarStatus: json['aadhaar_status']?.toString() ?? 'Verified On File',
+      aadhaarPhoto: json['aadhaar_photo']?.toString() ?? '',
+    );
+  }
 }
