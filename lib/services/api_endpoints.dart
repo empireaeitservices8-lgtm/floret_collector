@@ -65,6 +65,7 @@ class APIEndPoints {
   static const String uploadWastePhoto = '/api/upload-waste-photo/';
   static const String razorpayGenerateQr = '/api/razorpay/generate-qr/';
   static const String razorpayPaymentVerify = '/api/razorpay/payment-status/';
-  //reshedule
+  //reschedule
+  static const String rescheduleDates = '/api/pickup-date-slots/';
   static const String reschedule = '/api/reschedule-pickup/';
 }

@@ -143,6 +143,66 @@ class WardRoute {
   }
 }
 
+class PickupDateSlot {
+  final int id;
+  final String date;
+  final String timeSlot;
+  final int maxPickups;
+  final int currentPickups;
+  final bool isAvailable;
+  final String district;
+  final String localBody;
+  final bool isSlotAvailable;
+
+  const PickupDateSlot({
+    required this.id,
+    required this.date,
+    required this.timeSlot,
+    required this.maxPickups,
+    required this.currentPickups,
+    required this.isAvailable,
+    required this.district,
+    required this.localBody,
+    required this.isSlotAvailable,
+  });
+
+  factory PickupDateSlot.fromJson(Map<String, dynamic> json) {
+    return PickupDateSlot(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      date: json['date']?.toString() ?? '',
+      timeSlot: json['time_slot']?.toString() ?? '',
+      maxPickups: (json['max_pickups'] as num?)?.toInt() ?? 0,
+      currentPickups: (json['current_pickups'] as num?)?.toInt() ?? 0,
+      isAvailable: json['is_available'] as bool? ?? true,
+      district: json['district']?.toString() ?? '',
+      localBody: json['local_body']?.toString() ?? '',
+      isSlotAvailable: json['is_slot_available'] as bool? ?? true,
+    );
+  }
+
+  DateTime? get parsedDate {
+    if (date.trim().isEmpty) return null;
+    try {
+      final clean = date.trim().replaceAll('/', '-');
+      return DateTime.parse(clean);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'date': date,
+        'time_slot': timeSlot,
+        'max_pickups': maxPickups,
+        'current_pickups': currentPickups,
+        'is_available': isAvailable,
+        'district': district,
+        'local_body': localBody,
+        'is_slot_available': isSlotAvailable,
+      };
+}
+
 // ─────────────────────────────────────────────
 // Repository
 // ─────────────────────────────────────────────
@@ -779,11 +839,43 @@ class WardRouteRepository {
     }
   }
 
-  //reshedule
+  /// GET /api/pickup-date-slots/
+  /// Fetches all pickup date slots
+  Future<List<PickupDateSlot>> fetchPickupDateSlots() async {
+    try {
+      final dio = await _client();
+      final res = await dio.get(APIEndPoints.rescheduleDates);
+      debugPrint(
+          'GET ${APIEndPoints.baseUrl}${APIEndPoints.rescheduleDates} status: ${res.statusCode}');
+
+      final data = res.data;
+      List<dynamic> rawSlots = [];
+      if (data is Map && data['slots'] is List) {
+        rawSlots = data['slots'] as List<dynamic>;
+      } else if (data is List) {
+        rawSlots = data;
+      }
+
+      return rawSlots
+          .whereType<Map<String, dynamic>>()
+          .map((item) => PickupDateSlot.fromJson(item))
+          .toList();
+    } on DioException catch (e) {
+      debugPrint(
+          'Error fetching pickup date slots: ${e.response?.data ?? e.message}');
+      throw Exception(e.message ?? 'Failed to fetch pickup date slots');
+    } catch (e) {
+      debugPrint('Error fetching pickup date slots: $e');
+      rethrow;
+    }
+  }
+
+  //reschedule
   Future<Map<String, dynamic>?> reschedulePickup({
     required int pickupId,
     required String newDate,
     required String reason,
+    String? newTimeSlot,
   }) async {
     try {
       final dio = await _client();
@@ -791,7 +883,7 @@ class WardRouteRepository {
       final body = {
         'pickup_id': pickupId,
         "new_date": newDate,
-        "new_time_slot": "9:00 AM – 12:00 PM",
+        "new_time_slot": newTimeSlot ?? "9:00 AM – 12:00 PM",
         "reason": reason
       };
       debugPrint(

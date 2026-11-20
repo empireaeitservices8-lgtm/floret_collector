@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -2701,6 +2703,75 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
     );
   }
 
+  Future<String> _getCurrentUserLocalBody() async {
+    // 1. Check cached collector from CollectorLocalStorage
+    try {
+      final collector = await _collectorStorage.getCollector();
+      final lb = collector?['local_body']?.toString() ??
+          collector?['localBody']?.toString();
+      if (lb != null && lb.trim().isNotEmpty) {
+        return lb.trim();
+      }
+    } catch (_) {}
+
+    // 2. Check SharedPreferences cached UserProfile
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedProfileStr =
+          prefs.getString(CollectorLocalStorage.keyUserProfile);
+      if (cachedProfileStr != null && cachedProfileStr.isNotEmpty) {
+        final decoded = jsonDecode(cachedProfileStr);
+        if (decoded is Map<String, dynamic>) {
+          final lb = decoded['local_body']?.toString() ??
+              decoded['localBody']?.toString();
+          if (lb != null && lb.trim().isNotEmpty) {
+            return lb.trim();
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 3. Fallback to current stop localBody
+    final currentStopLb = _currentStop['localBody']?.toString() ??
+        _currentStop['local_body']?.toString();
+    if (currentStopLb != null && currentStopLb.trim().isNotEmpty) {
+      return currentStopLb.trim();
+    }
+
+    // 4. Fallback to any stop in _pickupStops
+    for (final stop in _pickupStops) {
+      final lb =
+          stop['localBody']?.toString() ?? stop['local_body']?.toString();
+      if (lb != null && lb.trim().isNotEmpty) {
+        return lb.trim();
+      }
+    }
+
+    return '';
+  }
+
+  bool _matchesLocalBody(String slotLb, String userLb) {
+    final s = slotLb.trim().toLowerCase();
+    final u = userLb.trim().toLowerCase();
+    if (s.isEmpty || u.isEmpty) return false;
+    if (s == u) return true;
+
+    // Normalize by stripping municipality, panchayath, corporation, etc.
+    final stripPattern = RegExp(
+      r'\s+(municipality|panchayath|panchayat|corporation|grama panchayat)$',
+      caseSensitive: false,
+    );
+    final cleanS = s.replaceAll(stripPattern, '').trim();
+    final cleanU = u.replaceAll(stripPattern, '').trim();
+
+    if (cleanS.isNotEmpty && cleanS == cleanU) return true;
+    if (cleanS.isNotEmpty &&
+        (cleanU.contains(cleanS) || cleanS.contains(cleanU))) {
+      return true;
+    }
+    return false;
+  }
+
   Future<void> _handleReschedule() async {
     final pickupId = (_currentStop['pickup_id'] as num?)?.toInt() ??
         (_currentStop['pickupId'] as num?)?.toInt() ??
@@ -2710,11 +2781,138 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
     final reason = await _showRescheduleReasonDialog();
     if (reason == null || reason.trim().isEmpty || !mounted) return;
 
-    // 2. When 'Go to date' is clicked, show calendar
+    // 2. Show loading dialog while fetching available date slots
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          color: Colors.white,
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Color(0xFF1E293B)),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Text(
+                  'Fetching available dates...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    List<PickupDateSlot> slots = [];
+    try {
+      slots = await _repository.fetchPickupDateSlots();
+    } catch (e) {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (mounted) {
+        _showSnack('Failed to fetch available dates: $e', isError: true);
+      }
+      return;
+    }
+
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+    if (!mounted) return;
+
+    // 3. Filter slots for currently logged in user's local body
+    final userLocalBody = await _getCurrentUserLocalBody();
+    debugPrint(
+        '[CollectionRoute] Reschedule - current user localBody: "$userLocalBody"');
+
+    final matchingSlots = slots
+        .where((s) => _matchesLocalBody(s.localBody, userLocalBody))
+        .toList();
+
+    if (matchingSlots.isEmpty) {
+      _showSnack(
+        userLocalBody.isNotEmpty
+            ? 'No pickup date slots available for $userLocalBody'
+            : 'No pickup date slots found for your local body.',
+        isError: true,
+      );
+      return;
+    }
+
+    // Filter available slots: where is_slot_available is true (or not false) and is_available is true
+    final availableSlots = matchingSlots
+        .where((s) => s.isSlotAvailable && s.isAvailable)
+        .toList();
+    final effectiveSlots =
+        availableSlots.isNotEmpty ? availableSlots : matchingSlots;
+
+    // Extract unique dates that should be selectable
+    final allowedDateTimes = <DateTime>{};
+    for (final slot in effectiveSlots) {
+      final pDate = slot.parsedDate;
+      if (pDate != null) {
+        allowedDateTimes.add(DateTime(pDate.year, pDate.month, pDate.day));
+      }
+    }
+
+    if (allowedDateTimes.isEmpty) {
+      _showSnack('No valid dates found in available slots.', isError: true);
+      return;
+    }
+
+    final sortedDates = allowedDateTimes.toList()..sort();
+    final now = DateTime.now();
+    final todayNormalized = DateTime(now.year, now.month, now.day);
+
+    // Initial date must satisfy selectableDayPredicate
+    final initialDate = sortedDates.firstWhere(
+      (d) => !d.isBefore(todayNormalized),
+      orElse: () => sortedDates.first,
+    );
+
+    // Ensure firstDate <= initialDate <= lastDate
+    final firstAllowed = sortedDates.first;
+    final lastAllowed = sortedDates.last;
+
+    final monthStart = firstAllowed.isBefore(todayNormalized)
+        ? DateTime(firstAllowed.year, firstAllowed.month, 1)
+        : DateTime(todayNormalized.year, todayNormalized.month, 1);
+    final firstDate =
+        monthStart.isBefore(initialDate) ? monthStart : initialDate;
+
+    final monthEnd = DateTime(lastAllowed.year, lastAllowed.month + 1, 0);
+    final lastDate = monthEnd.isAfter(initialDate)
+        ? monthEnd
+        : initialDate.add(const Duration(days: 30));
+
+    // 4. Open calendar with only filtered dates clickable
     final pickedDate = await showDatePicker(
       context: context,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      selectableDayPredicate: (DateTime day) {
+        final normalized = DateTime(day.year, day.month, day.day);
+        return allowedDateTimes.contains(normalized);
+      },
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -2734,10 +2932,28 @@ class _CollectionRouteScreenState extends State<CollectionRouteScreen> {
     final formatted =
         '${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}';
 
+    // Find corresponding time slot for the selected date if available
+    final matchingDateSlot = effectiveSlots.firstWhere(
+      (s) {
+        final p = s.parsedDate;
+        return p != null &&
+            p.year == pickedDate.year &&
+            p.month == pickedDate.month &&
+            p.day == pickedDate.day;
+      },
+      orElse: () => effectiveSlots.first,
+    );
+
     try {
       if (pickupId > 0) {
         await _repository.reschedulePickup(
-            pickupId: pickupId, newDate: formatted, reason: reason);
+          pickupId: pickupId,
+          newDate: formatted,
+          reason: reason,
+          newTimeSlot: matchingDateSlot.timeSlot.isNotEmpty
+              ? matchingDateSlot.timeSlot
+              : null,
+        );
       }
       if (mounted) {
         _showSnack('Pickup rescheduled to $formatted');
