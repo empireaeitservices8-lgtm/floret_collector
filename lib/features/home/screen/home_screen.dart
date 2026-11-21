@@ -38,7 +38,6 @@ class HomeScreen extends StatelessWidget {
         });
         vm.loadLocations();
         vm.loadBags();
-        vm.loadPickupSlots();
         return vm;
       },
       child: Scaffold(

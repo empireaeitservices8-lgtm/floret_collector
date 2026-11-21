@@ -2,17 +2,17 @@ import 'package:floret_collector/features/home/model/bag_assignment_model.dart';
 import 'package:floret_collector/features/home/model/bag_model.dart';
 import 'package:floret_collector/features/home/model/collector_route_pickups_model.dart';
 import 'package:floret_collector/features/home/model/location_pickup_model.dart';
-import 'package:floret_collector/features/home/model/pickup_slot_model.dart';
 import 'package:floret_collector/services/api_client.dart';
 import 'package:floret_collector/services/api_endpoints.dart';
 import 'package:flutter/foundation.dart';
 
 abstract class HomeRepository {
-  Future<PickupSlotsResponseModel> getPickupSlots();
   Future<List<BagModel>> getBags();
   Future<BagModel> getBagDetails(int id);
   Future<BagAssignmentModel?> getBagAssignment(String collectorId);
   Future<List<LocationPickupModel>> getLocations();
+  Future<CollectorRoutePickupsResponse?> getMyAssignedRoutes(
+      String collectorName);
   Future<CollectorRoutePickupsResponse?> getCollectorPickupsByRoute(
       String collectorName);
 }
@@ -21,17 +21,6 @@ class HomeRepositoryImpl implements HomeRepository {
   final ApiClient apiClient;
 
   HomeRepositoryImpl(this.apiClient);
-
-  @override
-  Future<PickupSlotsResponseModel> getPickupSlots() async {
-    final response = await apiClient.get(
-      APIEndPoints.pickupSlots,
-    );
-    debugPrint('called ${APIEndPoints.pickupSlots}');
-    return PickupSlotsResponseModel.fromJson(
-      Map<String, dynamic>.from(response.data as Map),
-    );
-  }
 
   //bags
   @override
@@ -102,17 +91,17 @@ class HomeRepositoryImpl implements HomeRepository {
   }
 
   @override
-  Future<CollectorRoutePickupsResponse?> getCollectorPickupsByRoute(
+  Future<CollectorRoutePickupsResponse?> getMyAssignedRoutes(
       String collectorName) async {
     try {
       final name =
           collectorName.trim().isNotEmpty ? collectorName.trim() : 'sanu';
       final response = await apiClient.get(
-        APIEndPoints.collectorPickupsByRoute,
+        APIEndPoints.myAssignedRoutes,
         queryParameters: {'collector_name': name},
       );
       debugPrint(
-          'GET ${APIEndPoints.collectorPickupsByRoute}?collector_name=$name response: ${response.statusCode}');
+          'GET ${APIEndPoints.myAssignedRoutes}?collector_name=$name response: ${response.statusCode}');
       if (response.data is Map) {
         return CollectorRoutePickupsResponse.fromJson(
           Map<String, dynamic>.from(response.data as Map),
@@ -120,8 +109,13 @@ class HomeRepositoryImpl implements HomeRepository {
       }
       return null;
     } catch (e) {
-      debugPrint('Error fetching collector pickups by route: $e');
+      debugPrint('Error fetching my assigned routes: $e');
       return null;
     }
   }
+
+  @override
+  Future<CollectorRoutePickupsResponse?> getCollectorPickupsByRoute(
+      String collectorName) =>
+      getMyAssignedRoutes(collectorName);
 }

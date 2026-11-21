@@ -2,7 +2,6 @@ import 'package:floret_collector/core/di/injection.dart';
 import 'package:floret_collector/core/storage/collector_details.dart';
 import 'package:floret_collector/features/home/model/location_pickup_model.dart';
 import 'package:floret_collector/features/home/model/pickup_dates_model.dart';
-import 'package:floret_collector/features/home/model/pickup_slot_model.dart';
 import 'package:floret_collector/services/api_client.dart';
 import 'package:floret_collector/services/api_endpoints.dart';
 import 'package:flutter/foundation.dart';
@@ -98,11 +97,11 @@ class ScheduleRepository {
       final collectorName = name.trim().isNotEmpty ? name.trim() : 'sanu';
 
       final response = await _apiClient.get(
-        APIEndPoints.collectorPickupsByRoute,
+        APIEndPoints.myAssignedRoutes,
         queryParameters: {'collector_name': collectorName},
       );
       debugPrint(
-          'Schedule: GET ${APIEndPoints.collectorPickupsByRoute}?collector_name=$collectorName response: ${response.statusCode}');
+          'Schedule: GET ${APIEndPoints.myAssignedRoutes}?collector_name=$collectorName response: ${response.statusCode}');
 
       if (response.data is Map && response.data['pickups'] is List) {
         final List<dynamic> data = response.data['pickups'] as List<dynamic>;
@@ -133,36 +132,35 @@ class ScheduleRepository {
   Future<ScheduleModel> fetchSchedule({DateTime? date}) async {
     final todayText = getTodayFormatted(date);
     try {
-      final response = await _apiClient.get(APIEndPoints.pickupSlots);
-      if (response.data is Map) {
-        final parsed = PickupSlotsResponseModel.fromJson(
-          Map<String, dynamic>.from(response.data as Map),
-        );
-        final slots = parsed.slots;
-        final now = date ?? DateTime.now();
-        final todaySlots = slots.where((s) =>
-            s.date.year == now.year &&
-            s.date.month == now.month &&
-            s.date.day == now.day).toList();
+      final pickups = await fetchLocations();
+      final now = date ?? DateTime.now();
+      final todayPickups = pickups.where((p) {
+        if (p.pickupDate.isEmpty || p.pickupDate.length < 10) return false;
+        try {
+          final parts = p.pickupDate.substring(0, 10).split('-');
+          if (parts.length == 3) {
+            final y = int.parse(parts[0]);
+            final m = int.parse(parts[1]);
+            final d = int.parse(parts[2]);
+            return y == now.year && m == now.month && d == now.day;
+          }
+        } catch (_) {}
+        return false;
+      }).toList();
 
-        final totalToday = todaySlots.length;
-        final totalAll = slots.length;
+      final totalToday = todayPickups.length;
+      final totalAll = pickups.length;
 
-        return ScheduleModel(
-          dateText: todayText,
-          progressText: totalToday > 0
-              ? '0 of $totalToday completed'
-              : '0 of $totalAll completed',
-          sanitaryPickups:
-              totalToday > 0 ? '$totalToday/$totalToday' : '0/$totalAll',
-          scrapPickups: '0/0',
-          wasteType: 'Sanitary & Scrap waste',
-          progressPercent: 0.0,
-          pickups: slots,
-        );
-      }
       return ScheduleModel(
         dateText: todayText,
+        progressText: totalToday > 0
+            ? '0 of $totalToday completed'
+            : '0 of $totalAll completed',
+        sanitaryPickups:
+            totalToday > 0 ? '$totalToday/$totalToday' : '0/$totalAll',
+        scrapPickups: '0/0',
+        wasteType: 'Sanitary & Scrap waste',
+        progressPercent: 0.0,
       );
     } catch (_) {
       return ScheduleModel(

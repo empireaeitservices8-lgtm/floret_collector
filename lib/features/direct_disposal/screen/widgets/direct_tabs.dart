@@ -201,19 +201,21 @@ Widget buildBagQuantityCard(
       IconButton(
         onPressed: vm.decrementBagQuantity,
         icon: const Icon(Icons.remove, color: Colors.black),
+        iconSize: 12,
       ),
-      const SizedBox(width: 10),
+      const SizedBox(width: 3),
       Text(
         vm.bagQuantity.toString(),
         style: const TextStyle(
-            fontSize: 20,
+            fontSize: 18,
             // fontWeight: FontWeight.bold,
             color: Colors.black),
       ),
-      const SizedBox(width: 10),
+      const SizedBox(width: 3),
       IconButton(
         onPressed: vm.incrementBagQuantity,
         icon: const Icon(Icons.add, color: Colors.black),
+        iconSize: 12,
       ),
     ],
   );

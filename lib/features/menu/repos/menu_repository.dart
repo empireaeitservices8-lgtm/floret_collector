@@ -37,10 +37,35 @@ class MenuRepository {
       // Check full serialized profile first
       final cachedProfileStr =
           prefs.getString(CollectorLocalStorage.keyUserProfile);
+      final collector =
+          await _collectorLocalStorage.getCollector() ?? <String, dynamic>{};
+      final savedLb = collector['local_body']?.toString() ??
+          collector['localBody']?.toString() ??
+          prefs.getString(CollectorLocalStorage.keyLocalBody) ??
+          '';
+      final savedD = collector['district']?.toString() ??
+          prefs.getString(CollectorLocalStorage.keyDistrict) ??
+          '';
+      final savedWardRaw = collector['ward']?.toString() ??
+          prefs.getString(CollectorLocalStorage.keyWard) ??
+          '';
+      final savedWard =
+          savedWardRaw.replaceFirst(RegExp(r'^[\s,]+'), '').trim();
+
       if (cachedProfileStr != null && cachedProfileStr.isNotEmpty) {
         final decoded = jsonDecode(cachedProfileStr);
         if (decoded is Map<String, dynamic>) {
-          final profile = UserProfileModel.fromJson(decoded);
+          var profile = UserProfileModel.fromJson(decoded);
+          if (profile.localBody.isEmpty && savedLb.isNotEmpty) {
+            profile = profile.copyWith(localBody: savedLb);
+          }
+          if (profile.district.isEmpty && savedD.isNotEmpty) {
+            profile = profile.copyWith(district: savedD);
+          }
+          if ((profile.ward.isEmpty || profile.ward == '39 - CHIRAKANI') &&
+              savedWard.isNotEmpty) {
+            profile = profile.copyWith(ward: savedWard);
+          }
           if (profile.name.isNotEmpty ||
               profile.phone.isNotEmpty ||
               profile.vehicleName.isNotEmpty) {
@@ -50,8 +75,6 @@ class MenuRepository {
       }
 
       // Fallback to collectorLocalStorage and individual keys
-      final collector =
-          await _collectorLocalStorage.getCollector() ?? <String, dynamic>{};
       final collectorId = await _collectorLocalStorage.getCollectorId();
 
       final name = collector['name']?.toString() ??
@@ -82,8 +105,8 @@ class MenuRepository {
           '';
 
       final ward = collector['ward']?.toString() ?? '';
-      final localBody = collector['local_body']?.toString() ?? '';
-      final district = collector['district']?.toString() ?? '';
+      final localBody = savedLb;
+      final district = savedD;
 
       if (name.isNotEmpty ||
           phone.isNotEmpty ||
@@ -96,7 +119,7 @@ class MenuRepository {
           vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Toyota HiAce',
           vehicleStatus: vehicleStatus,
           regNo: vehicleNumber.isNotEmpty ? vehicleNumber : 'KL-01-AB-1201',
-          ward: ward.isNotEmpty ? ward : '39 - CHIRAKANI',
+          ward: savedWard.isNotEmpty ? savedWard : ward,
           localBody: localBody,
           district: district,
           aadhaarStatus: 'Verified On File',
@@ -131,11 +154,21 @@ class MenuRepository {
       // Also ensure ward, local_body, district, photo are cached in collector map
       final collector =
           await _collectorLocalStorage.getCollector() ?? <String, dynamic>{};
-      if (profile.ward.isNotEmpty) collector['ward'] = profile.ward;
+      if (profile.ward.isNotEmpty) {
+        final clean = profile.ward.replaceFirst(RegExp(r'^[\s,]+'), '').trim();
+        collector['ward'] = clean;
+        await prefs.setString(CollectorLocalStorage.keyWard, clean);
+      }
       if (profile.localBody.isNotEmpty) {
         collector['local_body'] = profile.localBody;
+        await prefs.setString(
+            CollectorLocalStorage.keyLocalBody, profile.localBody);
       }
-      if (profile.district.isNotEmpty) collector['district'] = profile.district;
+      if (profile.district.isNotEmpty) {
+        collector['district'] = profile.district;
+        await prefs.setString(
+            CollectorLocalStorage.keyDistrict, profile.district);
+      }
       if (profile.aadhaarPhoto.isNotEmpty) {
         collector['aadhaar_card_photo'] = profile.aadhaarPhoto;
       }
@@ -165,6 +198,11 @@ class MenuRepository {
       String district = collector['district']?.toString() ?? '';
 
       // Execute network requests concurrently with timeout so screen loads fast
+      final nameToUse = name.trim().isNotEmpty
+          ? name.trim()
+          : (collector['username']?.toString() ??
+              await _collectorLocalStorage.getUsername());
+
       final futures = await Future.wait([
         // 1. Collector profile details from API
         _apiClient
@@ -196,11 +234,37 @@ class MenuRepository {
           debugPrint('MenuRepository: Error fetching locations: $e');
           return null as dynamic;
         }),
+        // 4. Assigned bags & region details for this collector from bag-assignment API
+        _apiClient
+            .get(
+          APIEndPoints.bagAssignment,
+          queryParameters: {'collector_id': collectorId},
+        )
+            .timeout(const Duration(seconds: 4))
+            .catchError((e) {
+          debugPrint('MenuRepository: Error fetching bag assignment: $e');
+          return null as dynamic;
+        }),
+        // 5. Assigned routes (ward, local_body, district) from my-assigned-routes API
+        _apiClient
+            .get(
+          APIEndPoints.myAssignedRoutes,
+          queryParameters: {
+            'collector_name': nameToUse.isNotEmpty ? nameToUse : 'sanu'
+          },
+        )
+            .timeout(const Duration(seconds: 4))
+            .catchError((e) {
+          debugPrint('MenuRepository: Error fetching my-assigned-routes: $e');
+          return null as dynamic;
+        }),
       ]);
 
       final dynamic profileRes = futures[0];
       final dynamic vehicleRes = futures[1];
       final dynamic locRes = futures[2];
+      final dynamic bagRes = futures[3];
+      final dynamic assignedRoutesRes = futures[4];
 
       // 1. Parse profile details
       if (profileRes != null && profileRes.data is Map) {
@@ -220,6 +284,17 @@ class MenuRepository {
         if (apiVehicleNumber != null && apiVehicleNumber.trim().isNotEmpty) {
           vehicleNumber = apiVehicleNumber.trim();
           collector['vehicle_number'] = vehicleNumber;
+        }
+        final apiLocalBody = data['local_body']?.toString() ??
+            data['localBody']?.toString();
+        if (apiLocalBody != null && apiLocalBody.trim().isNotEmpty) {
+          localBody = apiLocalBody.trim();
+          collector['local_body'] = localBody;
+        }
+        final apiDistrict = data['district']?.toString();
+        if (apiDistrict != null && apiDistrict.trim().isNotEmpty) {
+          district = apiDistrict.trim();
+          collector['district'] = district;
         }
       }
 
@@ -244,6 +319,28 @@ class MenuRepository {
         final colName = data['collector_name']?.toString();
         if (colName != null && colName.trim().isNotEmpty) {
           name = colName.trim();
+          collector['name'] = name;
+        }
+      }
+
+      // 3. Parse bag assignment details (contains collector's assigned local_body & district)
+      if (bagRes != null && bagRes.data is Map) {
+        final data = Map<String, dynamic>.from(bagRes.data as Map);
+        final lb = data['local_body']?.toString().trim() ??
+            data['localBody']?.toString().trim() ??
+            '';
+        final d = data['district']?.toString().trim() ?? '';
+        if (lb.isNotEmpty) {
+          localBody = lb;
+          collector['local_body'] = localBody;
+        }
+        if (d.isNotEmpty) {
+          district = d;
+          collector['district'] = district;
+        }
+        final colName = data['collector_name']?.toString().trim();
+        if (colName != null && colName.isNotEmpty && name.isEmpty) {
+          name = colName;
           collector['name'] = name;
         }
       }
@@ -315,17 +412,52 @@ class MenuRepository {
         }
       }
 
-      if (ward.isEmpty) {
-        ward = collector['ward']?.toString() ?? '';
-      }
-      if (localBody.isEmpty) {
-        localBody = collector['local_body']?.toString() ?? '';
-      }
-      if (district.isEmpty) {
-        district = collector['district']?.toString() ?? '';
+      // 5. Parse assigned routes from my-assigned-routes API
+      if (assignedRoutesRes != null && assignedRoutesRes.data is Map) {
+        final data = Map<String, dynamic>.from(assignedRoutesRes.data as Map);
+        if (data['assigned_routes'] is List &&
+            (data['assigned_routes'] as List).isNotEmpty) {
+          final firstRoute = (data['assigned_routes'] as List).first;
+          if (firstRoute is Map) {
+            final rawWard = firstRoute['ward']?.toString() ?? '';
+            final cleanWard =
+                rawWard.replaceFirst(RegExp(r'^[\s,]+'), '').trim();
+            if (cleanWard.isNotEmpty) {
+              ward = cleanWard;
+              collector['ward'] = ward;
+            }
+            final lb = firstRoute['local_body']?.toString()?.trim() ?? '';
+            if (lb.isNotEmpty) {
+              localBody = lb;
+              collector['local_body'] = localBody;
+            }
+            final d = firstRoute['district']?.toString()?.trim() ?? '';
+            if (d.isNotEmpty) {
+              district = d;
+              collector['district'] = district;
+            }
+          }
+        }
       }
 
       final sp = await SharedPreferences.getInstance();
+      if (ward.isEmpty) {
+        final savedW = collector['ward']?.toString() ??
+            sp.getString(CollectorLocalStorage.keyWard) ??
+            '';
+        ward = savedW.replaceFirst(RegExp(r'^[\s,]+'), '').trim();
+      }
+      if (localBody.isEmpty) {
+        localBody = collector['local_body']?.toString() ??
+            collector['localBody']?.toString() ??
+            sp.getString(CollectorLocalStorage.keyLocalBody) ??
+            '';
+      }
+      if (district.isEmpty) {
+        district = collector['district']?.toString() ??
+            sp.getString(CollectorLocalStorage.keyDistrict) ??
+            '';
+      }
       if (name.isEmpty) {
         name = sp.getString('saved_username') ??
             sp.getString(sp_keys.keyUserName) ??
@@ -348,7 +480,7 @@ class MenuRepository {
         vehicleName: vehicleName,
         vehicleStatus: 'Assigned',
         regNo: vehicleNumber,
-        ward: ward.isNotEmpty ? ward : '39 - CHIRAKANI',
+        ward: ward,
         localBody: localBody,
         district: district,
         aadhaarStatus: 'Verified On File',

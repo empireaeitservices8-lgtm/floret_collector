@@ -85,7 +85,6 @@ class _MenuScreenState extends State<MenuScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 16),
-
                       // Header
                       const Text(
                         'Menu & Profile',
@@ -183,47 +182,6 @@ class _MenuScreenState extends State<MenuScreen> {
                                     letterSpacing: 0.6,
                                   ),
                                 ),
-                                // InkWell(
-                                //   onTap: () {
-                                //     VehicleAssignmentBottomSheet.show(
-                                //       context: context,
-                                //       viewModel: vm,
-                                //     );
-                                //   },
-                                //   borderRadius: BorderRadius.circular(8),
-                                //   child: Container(
-                                //     padding: const EdgeInsets.symmetric(
-                                //       horizontal: 10,
-                                //       vertical: 4,
-                                //     ),
-                                //     decoration: BoxDecoration(
-                                //       color: const Color(0xFFEFF6FF),
-                                //       borderRadius: BorderRadius.circular(8),
-                                //       border: Border.all(
-                                //         color: const Color(0xFFDBEAFE),
-                                //       ),
-                                //     ),
-                                //     child: const Row(
-                                //       mainAxisSize: MainAxisSize.min,
-                                //       children: [
-                                //         Icon(
-                                //           Icons.edit_note_rounded,
-                                //           size: 16,
-                                //           color: Color(0xFF2563EB),
-                                //         ),
-                                //         SizedBox(width: 4),
-                                //         Text(
-                                //           'Assign (Admin)',
-                                //           style: TextStyle(
-                                //             fontSize: 12,
-                                //             fontWeight: FontWeight.w700,
-                                //             color: Color(0xFF2563EB),
-                                //           ),
-                                //         ),
-                                //       ],
-                                //     ),
-                                //   ),
-                                // ),
                               ],
                             ),
 
@@ -349,7 +307,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
                             // ASSIGNED REGION & WARD
                             const Text(
-                              'ASSIGNED REGION & WARD',
+                              'ASSIGNED REGION',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -358,54 +316,80 @@ class _MenuScreenState extends State<MenuScreen> {
                               ),
                             ),
                             const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFDCFCE7),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Icon(
-                                    Icons.location_on_outlined,
-                                    size: 20,
-                                    color: Color(0xFF16A34A),
-                                  ),
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0xFFE2E8F0),
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        profile.ward.isNotEmpty
-                                            ? profile.ward
-                                            : 'Unknown',
-                                        style: const TextStyle(
-                                          fontSize: 14.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: Color(0xFF1E293B),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        profile.localBody.isNotEmpty
-                                            ? profile.localBody
-                                            : (profile.district.isNotEmpty
-                                                ? profile.district
-                                                : 'Operational Area'),
-                                        style: const TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w500,
-                                          color: Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFDCFCE7),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.location_on_outlined,
+                                      size: 20,
+                                      color: Color(0xFF16A34A),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          () {
+                                            final cleanWard = profile.ward
+                                                .replaceFirst(
+                                                    RegExp(r'^[\s,]+'), '')
+                                                .trim();
+                                            if (cleanWard.isNotEmpty) {
+                                              return cleanWard;
+                                            }
+                                            if (profile.localBody.isNotEmpty) {
+                                              return profile.localBody;
+                                            }
+                                            if (profile.district.isNotEmpty) {
+                                              return profile.district;
+                                            }
+                                            return 'Operational Area';
+                                          }(),
+                                          style: const TextStyle(
+                                            fontSize: 14.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF1E293B),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          profile.localBody.isNotEmpty &&
+                                                  profile.district.isNotEmpty
+                                              ? '${profile.localBody}, ${profile.district}'
+                                              : (profile.localBody.isNotEmpty
+                                                  ? profile.localBody
+                                                  : (profile.district.isNotEmpty
+                                                      ? 'District: ${profile.district}'
+                                                      : 'District: Not Assigned')),
+                                          style: const TextStyle(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w500,
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
 
                             const Padding(

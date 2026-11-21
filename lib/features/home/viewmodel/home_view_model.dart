@@ -7,7 +7,6 @@ import 'package:floret_collector/features/home/model/location_pickup_model.dart'
 import 'package:flutter/foundation.dart';
 import 'package:floret_collector/core/storage/collector_details.dart';
 import 'package:floret_collector/core/storage/collection_metrics_storage.dart';
-import 'package:floret_collector/features/home/model/pickup_slot_model.dart';
 
 import '../repos/home_repository.dart';
 
@@ -46,7 +45,6 @@ class HomeViewModel extends ChangeNotifier {
   // Variables
   bool _isLoading = false;
   String? _errorMessage;
-  List<PickupSlotModel> _slots = [];
   String _collectorName = '';
   String _collectorUsername = '';
   String _collectorId = '';
@@ -63,7 +61,6 @@ class HomeViewModel extends ChangeNotifier {
   // Getters
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  List<PickupSlotModel> get slots => List.unmodifiable(_slots);
   String get collectorName => _collectorName;
   String get collectorUsername => _collectorUsername;
   List<BagModel> get bags => List.unmodifiable(_bags);
@@ -132,28 +129,6 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Load pickup slots from API
-  Future<void> loadPickupSlots({bool showLoading = true}) async {
-    if (showLoading) {
-      _isLoading = true;
-      _errorMessage = null;
-      notifyListeners();
-    }
-
-    try {
-      final response = await _repository.getPickupSlots();
-      debugPrint('Pickups ${response.toString()}');
-      _slots = response.slots;
-    } catch (e) {
-      _errorMessage = 'Unable to load pickup slots';
-    } finally {
-      if (showLoading) {
-        _isLoading = false;
-      }
-      notifyListeners();
-    }
-  }
-
   // Refresh all home data
   Future<void> refresh() async {
     await loadCollector();
@@ -162,7 +137,6 @@ class HomeViewModel extends ChangeNotifier {
       loadTodayCollectionMetrics(),
       loadLocations(),
       loadBags(),
-      loadPickupSlots(showLoading: false),
       _metricsStorage.loadTodayMetrics(),
     ]);
   }
@@ -222,6 +196,17 @@ class HomeViewModel extends ChangeNotifier {
           : await _collectorLocalStorage.getCollectorId();
       _bagAssignment = await _repository.getBagAssignment(id);
       debugPrint('Bag assignment: $_bagAssignment');
+      if (_bagAssignment != null) {
+        final lb = _bagAssignment!.localBody.trim();
+        final d = _bagAssignment!.district.trim();
+        if (lb.isNotEmpty || d.isNotEmpty) {
+          final collector =
+              await _collectorLocalStorage.getCollector() ?? <String, dynamic>{};
+          if (lb.isNotEmpty) collector['local_body'] = lb;
+          if (d.isNotEmpty) collector['district'] = d;
+          await _collectorLocalStorage.saveCollector(collector);
+        }
+      }
       notifyListeners();
     } catch (e) {
       debugPrint('Unable to load bag assignment: $e');
@@ -241,15 +226,30 @@ class HomeViewModel extends ChangeNotifier {
               ? _collectorName
               : await _collectorLocalStorage.getCollectorName());
 
-      debugPrint('Fetching collector pickups by route for: $nameToUse');
+      debugPrint('Fetching assigned routes / collector pickups for: $nameToUse');
       final routeResponse =
-          await _repository.getCollectorPickupsByRoute(nameToUse);
+          await _repository.getMyAssignedRoutes(nameToUse);
 
       if (routeResponse != null) {
         _locations = routeResponse.pickups;
         _assignedRoutes = routeResponse.assignedRoutes;
         debugPrint(
             'Collector pickups loaded: ${_locations.length}, routes: ${_assignedRoutes.length}');
+        if (_assignedRoutes.isNotEmpty) {
+          final route = _assignedRoutes.first;
+          final cleanWard =
+              route.ward.replaceFirst(RegExp(r'^[\s,]+'), '').trim();
+          final lb = route.localBody.trim();
+          final d = route.district.trim();
+          if (cleanWard.isNotEmpty || lb.isNotEmpty || d.isNotEmpty) {
+            final collector =
+                await _collectorLocalStorage.getCollector() ?? <String, dynamic>{};
+            if (cleanWard.isNotEmpty) collector['ward'] = cleanWard;
+            if (lb.isNotEmpty) collector['local_body'] = lb;
+            if (d.isNotEmpty) collector['district'] = d;
+            await _collectorLocalStorage.saveCollector(collector);
+          }
+        }
       } else {
         _locations = await _repository.getLocations();
         debugPrint('Fallback locations loaded: ${_locations.length}');
@@ -260,15 +260,14 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  // Filter today's pickup slots
-  List<PickupSlotModel> get todaySlots {
-    final now = DateTime.now();
-
-    return _slots.where((slot) {
-      return slot.date.year == now.year &&
-          slot.date.month == now.month &&
-          slot.date.day == now.day;
-    }).toList();
+  String get todayArea {
+    if (_assignedRoutes.isNotEmpty) {
+      return _assignedRoutes.map((s) => s.localBody).toSet().join(', ');
+    }
+    if (_locations.isNotEmpty) {
+      return _locations.map((l) => l.localBody).toSet().join(', ');
+    }
+    return 'N/A';
   }
 
   // Status priority: arrived first
@@ -325,11 +324,6 @@ class HomeViewModel extends ChangeNotifier {
 
   bool get hasArrivedPickup =>
       todayPendingLocations.any((l) => l.status.toLowerCase() == 'arrived');
-
-  String get todayArea {
-    if (todaySlots.isEmpty) return 'N/A';
-    return todaySlots.map((s) => s.localBody).toSet().join(', ');
-  }
 
   String get homeLocation {
     if (_assignedRoutes.isNotEmpty) {
@@ -390,8 +384,6 @@ class HomeViewModel extends ChangeNotifier {
     if (_bagAssignment != null && _bagAssignment!.district.isNotEmpty) {
       return _bagAssignment!.district;
     }
-    if (todaySlots.isNotEmpty) return todaySlots.first.district;
-    if (_slots.isNotEmpty) return _slots.first.district;
     return 'N/A';
   }
 
@@ -410,7 +402,6 @@ class HomeViewModel extends ChangeNotifier {
     if (_bagAssignment != null && _bagAssignment!.localBody.isNotEmpty) {
       return _bagAssignment!.localBody;
     }
-    if (todaySlots.isNotEmpty) return todaySlots.first.localBody;
     return 'N/A';
   }
 
@@ -424,8 +415,7 @@ class HomeViewModel extends ChangeNotifier {
         return s == 'picked' || s == 'collected' || s == 'completed';
       }).length;
 
-  int get todayTotalSpots =>
-      todaySlots.fold<int>(0, (sum, s) => sum + s.availableSpots);
+  int get todayTotalSpots => todayLocations.length;
 
   Future<void> loadBags() async {
     try {

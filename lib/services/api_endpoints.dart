@@ -1,19 +1,22 @@
 class APIEndPoints {
   static const String baseUrl = "https://florettech.pythonanywhere.com";
+
   //auth
   static const String login = "/api/login/";
   static const String register = "/api/register/";
 
   //home
-  static const String pickupSlots = '/api/pickup-slots/';
+  static const String myAssignedRoutes = '/api/collector-pickups-by-route/';
+  static String getMyAssignedRoutes(String collectorName) =>
+      '$myAssignedRoutes?collector_name=${Uri.encodeComponent(collectorName)}';
   static const String bags = '/api/bags/';
   static String bagDetails(int id) => '$bags$id/';
   static const String bagAssignment = '/api/my-bag-assignment/';
   static const String locations = '/api/locations/';
-  static const String collectorPickupsByRoute =
-      '/api/collector-pickups-by-route/';
+
+  static const String collectorPickupsByRoute = myAssignedRoutes;
   static String getCollectorPickupsByRoute(String collectorName) =>
-      '$collectorPickupsByRoute?collector_name=${Uri.encodeComponent(collectorName)}';
+      getMyAssignedRoutes(collectorName);
   static String collectorPickupDates(dynamic collectorId) =>
       '/api/collector-pickup-dates/?collector_id=$collectorId';
 

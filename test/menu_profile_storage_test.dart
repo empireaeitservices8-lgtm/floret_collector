@@ -59,6 +59,32 @@ void main() {
     expect(cached.vehicleName, 'Mahindra Bolero');
     expect(cached.regNo, 'KL-04-XY-9999');
     expect(cached.ward, 'Ward 12');
+    expect(cached.localBody, 'Kochi Corp');
+    expect(cached.district, 'Ernakulam');
+    expect(await storage.getSavedLocalBody(), 'Kochi Corp');
+    expect(await storage.getSavedDistrict(), 'Ernakulam');
+    expect(await storage.getSavedWard(), 'Ward 12');
+  });
+
+  test('CollectorLocalStorage saves and cleans ward with leading commas', () async {
+    final storage = CollectorLocalStorage();
+    final repository = MenuRepository(collectorLocalStorage: storage);
+
+    const testProfile = UserProfileModel(
+      collectorId: '102',
+      name: 'Nabeel',
+      phone: '+91 9999999999',
+      ward: ', KALLUVARAMBU, IRINCHIYAM, KUSARKODE',
+      localBody: 'Nedumangadu Municipality',
+      district: 'Thiruvananthapuram',
+    );
+
+    await repository.saveUserProfileLocally(testProfile);
+    expect(await storage.getSavedWard(), 'KALLUVARAMBU, IRINCHIYAM, KUSARKODE');
+
+    final cached = await repository.getCachedUserProfile();
+    expect(cached, isNotNull);
+    expect(cached!.ward, 'KALLUVARAMBU, IRINCHIYAM, KUSARKODE');
   });
 
   test('MenuRepository logout clears all locally saved profile, name, phone, and vehicle details', () async {
@@ -90,6 +116,9 @@ void main() {
     expect(await storage.getSavedPhone(), isNull);
     expect(await storage.getSavedVehicleName(), isNull);
     expect(await storage.getSavedVehicleNumber(), isNull);
+    expect(await storage.getSavedLocalBody(), isNull);
+    expect(await storage.getSavedDistrict(), isNull);
+    expect(await storage.getSavedWard(), isNull);
     expect(await storage.getCollector(), isNull);
     expect(await repository.getCachedUserProfile(), isNull);
   });

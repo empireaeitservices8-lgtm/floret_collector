@@ -12,16 +12,16 @@ class UserProfileModel {
   final String aadhaarPhoto;
 
   const UserProfileModel({
-    this.collectorId = '68',
-    this.name = 'shyam',
-    this.phone = '+91 82815 35237',
-    this.vehicleName = 'Toyota HiAce',
-    this.vehicleStatus = 'Assigned',
-    this.regNo = 'KL-01-AB-1201',
-    this.ward = '39 - CHIRAKANI',
+    this.collectorId = '',
+    this.name = '',
+    this.phone = '',
+    this.vehicleName = '',
+    this.vehicleStatus = '',
+    this.regNo = '',
+    this.ward = '',
     this.localBody = '',
     this.district = '',
-    this.aadhaarStatus = 'Verified On File',
+    this.aadhaarStatus = '',
     this.aadhaarPhoto = '',
   });
 
@@ -76,7 +76,9 @@ class UserProfileModel {
       phone: json['phone']?.toString() ?? '',
       vehicleName: json['vehicle_name']?.toString() ?? '',
       vehicleStatus: json['vehicle_status']?.toString() ?? 'Assigned',
-      regNo: json['reg_no']?.toString() ?? json['vehicle_number']?.toString() ?? '',
+      regNo: json['reg_no']?.toString() ??
+          json['vehicle_number']?.toString() ??
+          '',
       ward: json['ward']?.toString() ?? '',
       localBody: json['local_body']?.toString() ?? '',
       district: json['district']?.toString() ?? '',

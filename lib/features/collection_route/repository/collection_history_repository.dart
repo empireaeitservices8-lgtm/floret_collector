@@ -246,11 +246,11 @@ class WardRouteRepository {
       if (name.isEmpty) name = 'sanu';
 
       final response = await dio.get(
-        APIEndPoints.collectorPickupsByRoute,
+        APIEndPoints.myAssignedRoutes,
         queryParameters: {'collector_name': name},
       );
       debugPrint(
-          'CollectionRoute: GET ${APIEndPoints.collectorPickupsByRoute}?collector_name=$name status: ${response.statusCode}');
+          'CollectionRoute: GET ${APIEndPoints.myAssignedRoutes}?collector_name=$name status: ${response.statusCode}');
 
       if (response.data is Map && response.data['pickups'] is List) {
         final rawPickups = response.data['pickups'] as List<dynamic>;
